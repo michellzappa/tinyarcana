@@ -4,7 +4,8 @@
 //                                                   |                            |
 //                                                  PWR -------> inner <---------PWR
 //   Close a reading from any screen after the deal: press PWR while holding
-//   BOOT, or hold BOOT on its own.
+//   BOOT, or hold BOOT on its own. The cards gather back into the deck and
+//   the next shuffle starts from scratch.
 #include <Arduino.h>
 
 #include "audio.h"
@@ -22,6 +23,7 @@ enum Screen : uint8_t {
   SCR_HELP,
   SCR_CUT,
   SCR_DEAL,
+  SCR_GATHER,    // cards return to the deck
   SCR_SPREAD,
   SCR_FLIP,
   SCR_CARD,      // one card, large
@@ -33,6 +35,7 @@ static const uint32_t BOOT_MS = 1900;
 static const uint32_t SHUFFLE_MS = 2400;
 static const uint32_t CUT_MS = 700;
 static const uint32_t DEAL_MS = 1100;
+static const uint32_t GATHER_MS = 1000;
 static const uint32_t FLIP_MS = 420;
 
 static Screen screen = SCR_BOOT;
@@ -46,6 +49,8 @@ static uint8_t innerPage = 0, innerPages = 1;
 static bool innerReady = false;
 static char innerText[2600];
 static uint8_t dealt = 0;
+static bool holding = false;
+static uint32_t holdStart = 0;
 
 static void go(Screen s) {
   screen = s;
@@ -128,10 +133,12 @@ void loop() {
   static bool bootChordUsed = false;
   if (!in.aDown) bootChordUsed = false;
   if (screen >= SCR_SPREAD && ((in.bPressed && in.aDown) || in.aLong)) {
-    Serial.println(in.aLong ? "btn BOOT long -> deck" : "btn BOOT+PWR -> deck");
+    Serial.println(in.aLong ? "btn BOOT long -> gather" : "btn BOOT+PWR -> gather");
     bootChordUsed = true;
+    holding = false;
+    dealt = 0;
     audioPlay(SND_BACK);
-    go(SCR_DECK);
+    go(SCR_GATHER);
     return;
   }
   if (bootChordUsed) {
@@ -147,8 +154,6 @@ void loop() {
     break;
 
   case SCR_DECK: {
-    static bool holding = false;
-    static uint32_t holdStart = 0;
     if (in.touchBegan && uiDeckHit(in.x, in.y)) {
       holding = true;
       holdStart = now;
@@ -193,6 +198,14 @@ void loop() {
     while (dealt < 3 && p >= dealt * 0.22f) { audioPlay(SND_DEAL); dealt++; }
     uiDeal(p);
     if (age >= DEAL_MS) go(SCR_SPREAD);
+    break;
+  }
+
+  case SCR_GATHER: {
+    const float p = age / (float)GATHER_MS;
+    while (dealt < 3 && p >= dealt * 0.22f) { audioPlay(SND_DEAL); dealt++; }
+    uiGather(p);
+    if (age >= GATHER_MS) go(SCR_DECK);
     break;
   }
 

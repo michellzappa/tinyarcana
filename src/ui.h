@@ -36,6 +36,8 @@ void uiDeck(uint32_t nowMs, bool holding, float progress);
 void uiHelp();
 void uiCut(float p);
 void uiDeal(float p);
+// The reverse: the three cards fly back into the stack, face down.
+void uiGather(float p);
 // flipping: slot index mid-flip or -1; flipPhase 0..1.
 void uiSpread(const Spread &s, int8_t flipping, float flipPhase);
 // One card as large as the glass allows, then its meaning as centered text.

@@ -222,6 +222,21 @@ void uiDeal(float p) {
   }
 }
 
+void uiGather(float p) {
+  gfx->clear(COL_BG);
+  deckTitle();
+  // Future returns first, then present, then past lands on top as the deck.
+  for (int8_t i = 2; i >= 0; i--) {
+    const float start = (2 - i) * 0.22f;
+    const float u = easeOut((p - start) / 0.5f);
+    const int16_t cx = (int16_t)(SLOT_CX[i] + (DECK_CX - SLOT_CX[i]) * u);
+    const int16_t y = (int16_t)(SLOT_Y + (DECK_Y - SLOT_Y) * u);
+    const int16_t w = (int16_t)(CARD_W[CARD_S] + (DECK_W - CARD_W[CARD_S]) * u);
+    const int16_t h = (int16_t)(CARD_H[CARD_S] + (DECK_H - CARD_H[CARD_S]) * u);
+    cardDrawBack(cx, y, w, h, 1.0f, 0.15f + 0.25f * u);
+  }
+}
+
 // ---------------- Spread ----------------
 static void drawSlotLabel(uint8_t i, uint16_t col) {
   char buf[12];
