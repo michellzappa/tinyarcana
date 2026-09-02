@@ -113,11 +113,12 @@ static bool cst9217Poll(int16_t *x, int16_t *y) {
 
 // Both axes mirrored: Waveshare's example calls setMirrorXY(true, true) for
 // this board (LoFi Air and Headroom both ship this mapping).
+// The mirrored panel point is then mapped through the same rotation the
+// display applies on flush (board_display.cpp).
 static void mirror(int16_t nx, int16_t ny, int16_t *x, int16_t *y) {
   nx = (int16_t)constrain(nx, 0, SCR_W - 1);
   ny = (int16_t)constrain(ny, 0, SCR_H - 1);
-  *x = (int16_t)(SCR_W - 1 - nx);
-  *y = (int16_t)(SCR_H - 1 - ny);
+  nativeToLogical((int16_t)(SCR_W - 1 - nx), (int16_t)(SCR_H - 1 - ny), x, y);
 }
 
 // LoFi Air's read discipline, kept exactly: read a packet only after the

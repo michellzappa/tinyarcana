@@ -40,6 +40,8 @@ void uiDeal(float p);
 void uiGather(float p);
 // flipping: slot index mid-flip or -1; flipPhase 0..1.
 void uiSpread(const Spread &s, int8_t flipping, float flipPhase);
+// The tapped card grows from its slot to fill the glass; p 0..1.
+void uiZoom(const Spread &s, uint8_t pos, float p);
 // One card as large as the glass allows, then its meaning as centered text.
 void uiCardBig(const Spread &s, uint8_t pos);
 void uiMeaning(const Spread &s, uint8_t pos);

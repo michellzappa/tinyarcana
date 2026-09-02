@@ -75,11 +75,44 @@ void PortraitCanvas::clear(uint16_t color) {
 
 #if defined(BOARD_ROUND_175)
 
+// The UI is drawn upright and rotated 90 degrees clockwise on the way to the
+// panel: logical top lands on the panel's right. Done in tiles so the strided
+// source walk stays cache-friendly (headroom's landscape rotate).
+//   native(nx, ny) = logical(lx = ny, ly = SCR_H - 1 - nx)
+static const int16_t ROT_TILE = 32;
+static void rotateCW(const uint16_t *src, uint16_t *dst) {
+  for (int16_t ny0 = 0; ny0 < SCR_H; ny0 += ROT_TILE) {
+    const int16_t nyEnd = (int16_t)(ny0 + ROT_TILE < SCR_H ? ny0 + ROT_TILE : SCR_H);
+    for (int16_t nx0 = 0; nx0 < SCR_W; nx0 += ROT_TILE) {
+      const int16_t nxEnd = (int16_t)(nx0 + ROT_TILE < SCR_W ? nx0 + ROT_TILE : SCR_W);
+      for (int16_t ny = ny0; ny < nyEnd; ny++) {
+        uint16_t *d = dst + (int32_t)ny * SCR_W + nx0;
+        // lx = ny (column), ly = SCR_H-1-nx (row): walk rows upward.
+        const uint16_t *s = src + (int32_t)(SCR_H - 1 - nx0) * SCR_W + ny;
+        for (int16_t nx = nx0; nx < nxEnd; nx++) {
+          *d++ = *s;
+          s -= SCR_W;
+        }
+      }
+    }
+  }
+}
+
+void nativeToLogical(int16_t nx, int16_t ny, int16_t *lx, int16_t *ly) {
+  *lx = ny;
+  *ly = (int16_t)(SCR_H - 1 - nx);
+}
+
 // One-shot full-frame blit; the CO5300 goes black on per-row QSPI writes.
 void PortraitCanvas::flush(bool force_flush) {
   (void)force_flush;
-  if (_framebuffer && _output)
-    _output->draw16bitRGBBitmap(0, 0, _framebuffer, SCR_W, SCR_H);
+  if (!_framebuffer || !_output) return;
+  if (!_native) {
+    _native = (uint16_t *)ps_malloc((size_t)SCR_W * SCR_H * sizeof(uint16_t));
+    if (!_native) return;
+  }
+  rotateCW(_framebuffer, _native);
+  _output->draw16bitRGBBitmap(0, 0, _native, SCR_W, SCR_H);
 }
 
 PortraitCanvas *gfx = new PortraitCanvas(panel);
@@ -136,6 +169,11 @@ void PortraitCanvas::flush(bool force_flush) {
   if (!_framebuffer || !_output) return;
   _output->draw16bitRGBBitmap(0, 0, _framebuffer, SCR_W, SCR_H);
   sealNativeEdges(_bg);
+}
+
+void nativeToLogical(int16_t nx, int16_t ny, int16_t *lx, int16_t *ly) {
+  *lx = nx;
+  *ly = ny;
 }
 
 PortraitCanvas *gfx = new PortraitCanvas(panel);

@@ -24,6 +24,8 @@ void cardPreload(uint8_t idx);
 
 // Face: width scaled by squash (0..1) about cx; top edge at y.
 void cardDrawFace(uint8_t idx, CardSize sz, int16_t cx, int16_t y, float squash);
+// Face resampled from the large bitmap to any w x h (zoom animation).
+void cardDrawFaceScaled(uint8_t idx, int16_t cx, int16_t y, int16_t w, int16_t h);
 // Procedural back at any size. glow 0..1 lifts the gold.
 void cardDrawBack(int16_t cx, int16_t y, int16_t w, int16_t h, float squash,
                   float glow);

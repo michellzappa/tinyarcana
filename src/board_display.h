@@ -14,6 +14,7 @@ static const int16_t SCR_H = LCD_HEIGHT;
 
 class PortraitCanvas : public Arduino_Canvas {
   uint16_t _bg = 0;
+  uint16_t *_native = nullptr;   // rotated copy, round board only
 
 public:
   PortraitCanvas(Arduino_G *out);
@@ -28,6 +29,8 @@ extern XPowersPMU PMU;
 extern bool pmuOk;
 
 bool boardDisplayBegin();
+// Panel (touch-controller) coordinates to the coordinates the UI draws in.
+void nativeToLogical(int16_t nx, int16_t ny, int16_t *lx, int16_t *ly);
 void boardSetBrightness(uint8_t b);
 bool i2cPresent(uint8_t addr);
 uint8_t tcaAddress();   // 1.8 only; 0 on boards without an expander

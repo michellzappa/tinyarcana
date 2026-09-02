@@ -26,6 +26,7 @@ enum Screen : uint8_t {
   SCR_GATHER,    // cards return to the deck
   SCR_SPREAD,
   SCR_FLIP,
+  SCR_ZOOM,      // slot -> full card
   SCR_CARD,      // one card, large
   SCR_MEANING,   // its text
   SCR_INNER,
@@ -37,6 +38,7 @@ static const uint32_t CUT_MS = 700;
 static const uint32_t DEAL_MS = 1100;
 static const uint32_t GATHER_MS = 1000;
 static const uint32_t FLIP_MS = 420;
+static const uint32_t ZOOM_MS = 380;
 
 static Screen screen = SCR_BOOT;
 static uint32_t enterMs = 0;
@@ -81,6 +83,13 @@ static void openCard(uint8_t pos, Sound snd) {
   cardPos = pos;
   audioPlay(snd);
   go(SCR_CARD);
+}
+
+// From the spread: the card grows out of its slot first.
+static void zoomCard(uint8_t pos) {
+  cardPos = pos;
+  audioPlay(SND_OPEN);
+  go(SCR_ZOOM);
 }
 
 static void backToSpread() {
@@ -215,7 +224,7 @@ void loop() {
       const int8_t slot = uiSlotHit(in.x, in.y);
       if (slot >= 0) {
         if (!spread.revealed[slot]) startFlip((uint8_t)slot);
-        else openCard((uint8_t)slot, SND_OPEN);
+        else zoomCard((uint8_t)slot);
       }
     }
     if (in.aPressed) {
@@ -223,7 +232,7 @@ void loop() {
       int8_t next = -1;
       for (uint8_t i = 0; i < 3; i++) if (!spread.revealed[i]) { next = (int8_t)i; break; }
       if (next >= 0) startFlip((uint8_t)next);
-      else openCard(0, SND_OPEN);
+      else zoomCard(0);
     }
     if (in.bPressed) {
       if (allRevealed()) openInner();
@@ -244,6 +253,13 @@ void loop() {
       if (allRevealed()) audioPlay(SND_CHORD);
       go(SCR_SPREAD);
     }
+    break;
+  }
+
+  case SCR_ZOOM: {
+    const float p = age / (float)ZOOM_MS;
+    uiZoom(spread, cardPos, p < 1 ? p : 1);
+    if (age >= ZOOM_MS) go(SCR_CARD);
     break;
   }
 

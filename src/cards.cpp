@@ -96,6 +96,29 @@ void cardDrawFace(uint8_t idx, CardSize sz, int16_t cx, int16_t y, float squash)
   }
 }
 
+void cardDrawFaceScaled(uint8_t idx, int16_t cx, int16_t y, int16_t w, int16_t h) {
+  const uint16_t *bmp = cardBitmap(idx, CARD_L);
+  uint16_t *fb = gfx->fb();
+  if (!fb || !bmp || w < 2 || h < 2) return;
+  const int16_t sw = CARD_W[CARD_L], sh = CARD_H[CARD_L];
+  const int16_t x0 = (int16_t)(cx - w / 2);
+  int16_t r = (int16_t)(w / 22);
+  if (r < 3) r = 3;
+  for (int16_t dy = 0; dy < h; dy++) {
+    const int16_t py = (int16_t)(y + dy);
+    if (py < 0 || py >= SCR_H) continue;
+    uint16_t *row = fb + (int32_t)py * SCR_W;
+    const uint16_t *src = bmp + (int32_t)((int32_t)dy * sh / h) * sw;
+    for (int16_t dx = 0; dx < w; dx++) {
+      const int16_t px = (int16_t)(x0 + dx);
+      if (px < 0 || px >= SCR_W) continue;
+      if (!insideRounded(dx, dy, w, h, r)) continue;
+      if (dx == 0 || dx == w - 1 || dy == 0 || dy == h - 1) { row[px] = COL_EDGE; continue; }
+      row[px] = src[(int32_t)dx * sw / w];
+    }
+  }
+}
+
 static inline uint16_t lerp565(uint16_t a, uint16_t b, float t) {
   if (t <= 0) return a;
   if (t >= 1) return b;

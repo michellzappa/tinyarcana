@@ -261,7 +261,24 @@ static void drawSlotLabel(uint8_t i, uint16_t col) {
   txtCenter(lora_small, buf, SLOT_CX[i], SLOT_Y - 12, col, 2);
 }
 
+static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t hide);
+
 void uiSpread(const Spread &s, int8_t flipping, float flipPhase) {
+  spreadBase(s, flipping, flipPhase, -1);
+}
+
+void uiZoom(const Spread &s, uint8_t pos, float p) {
+  spreadBase(s, -1, 0, (int8_t)pos);
+  const float u = easeOut(p);
+  const int16_t bigY = (int16_t)((SCR_H - CARD_H[CARD_L]) / 2);
+  const int16_t cx = (int16_t)(SLOT_CX[pos] + (CX - SLOT_CX[pos]) * u);
+  const int16_t y = (int16_t)(SLOT_Y + (bigY - SLOT_Y) * u);
+  const int16_t w = (int16_t)(CARD_W[CARD_S] + (CARD_W[CARD_L] - CARD_W[CARD_S]) * u);
+  const int16_t h = (int16_t)(CARD_H[CARD_S] + (CARD_H[CARD_L] - CARD_H[CARD_S]) * u);
+  cardDrawFaceScaled(s.reading.card[pos], cx, y, w, h);
+}
+
+static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t hide) {
   gfx->clear(COL_BG);
   uint8_t n = 0;
   for (uint8_t i = 0; i < 3; i++) if (s.revealed[i]) n++;
@@ -272,7 +289,9 @@ void uiSpread(const Spread &s, int8_t flipping, float flipPhase) {
   for (uint8_t i = 0; i < 3; i++) {
     drawSlotLabel(i, s.revealed[i] ? COL_GOLD : COL_GOLD_DIM);
     const uint8_t idx = s.reading.card[i];
-    if ((int8_t)i == flipping) {
+    if ((int8_t)i == hide) {
+      continue;
+    } else if ((int8_t)i == flipping) {
       if (flipPhase < 0.5f) {
         cardDrawBack(SLOT_CX[i], SLOT_Y, cardW, cardH, 1.0f - flipPhase * 2.0f, 0.6f);
       } else {
