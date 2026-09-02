@@ -42,10 +42,11 @@ FONTS = [
     ("lora_italic", "Lora-Italic-VariableFont_wght.ttf", 15, 400),
     ("lora_read", "Lora-VariableFont_wght.ttf", 17, 400),
     ("lora_read_italic", "Lora-Italic-VariableFont_wght.ttf", 17, 400),
-    # The meaning page, one notch up from the reading sizes.
-    ("lora_label", "Lora-VariableFont_wght.ttf", 14, 600),
-    ("lora_name", "Lora-VariableFont_wght.ttf", 30, 500),
-    ("lora_meaning", "Lora-VariableFont_wght.ttf", 19, 400),
+    # The meaning page, two notches up from the reading sizes.
+    ("lora_label", "Lora-VariableFont_wght.ttf", 16, 600),
+    ("lora_name", "Lora-VariableFont_wght.ttf", 34, 500),
+    ("lora_keys", "Lora-Italic-VariableFont_wght.ttf", 19, 400),
+    ("lora_meaning", "Lora-VariableFont_wght.ttf", 21, 400),
     ("lora_small", "Lora-VariableFont_wght.ttf", 12, 600),
 ]
 FIRST, LAST = 32, 126

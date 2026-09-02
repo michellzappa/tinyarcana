@@ -11,9 +11,10 @@ extern const AaFont lora_body;     // 15px, body text
 extern const AaFont lora_italic;   // 15px, questions and asides
 extern const AaFont lora_read;     // 17px, the readings
 extern const AaFont lora_read_italic;
-extern const AaFont lora_label;    // 14px caps, meaning page labels
-extern const AaFont lora_name;     // 30px, meaning page card name
-extern const AaFont lora_meaning;  // 19px, meaning page body
+extern const AaFont lora_label;    // 16px caps, meaning page labels
+extern const AaFont lora_name;     // 34px, meaning page card name
+extern const AaFont lora_keys;     // 19px italic, meaning page keywords
+extern const AaFont lora_meaning;  // 21px, meaning page body
 extern const AaFont lora_small;    // 12px, labels (use uppercase + tracking)
 
 uint16_t blend565(uint16_t bg, uint16_t fg, uint8_t a);

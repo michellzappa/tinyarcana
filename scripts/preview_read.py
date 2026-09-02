@@ -84,14 +84,14 @@ def render(spec, card):
     draw_center(d, font(spec["name"], 500), card["name"], spec["nameY"], IVORY)
     draw_center(d, font(spec["keys"], 400, True), card["keys"], spec["keysY"], DIM)
     d.line((CX - 70, spec["ruleY"], CX + 70, spec["ruleY"]), fill=GOLD_DIM)
-    y = wrap_chord(d, font(spec["body"]), card["text"], spec["bodyY"], spec["lineH"], 52, IVORY, spec["maxLines"])
+    y = wrap_chord(d, font(spec["body"]), card["text"], spec["bodyY"], spec["lineH"], spec.get("inset", 52), IVORY, spec["maxLines"])
     names, glyphs = load_glyphs()
     glyph_y = spec["glyphY"]
     if spec.get("flow"):
-        glyph_y = min(y - spec["lineH"] + 44, spec["dotsY"] - 52)
+        glyph_y = min(y - spec["lineH"] + spec.get("gap", 44), spec["dotsY"] - spec.get("floor", 52))
     draw_glyph(img, glyphs[names.index(card["glyph"])], glyph_y, spec["glyph"], GOLD)
     d = ImageDraw.Draw(img)
-    cap_y = glyph_y + 38 if spec.get("flow") else spec["capY"]
+    cap_y = glyph_y + spec.get("capGap", 38) if spec.get("flow") else spec["capY"]
     draw_center(d, font(spec["cap"], 600), card["cap"], cap_y, GOLD_DIM, 2)
     for i in range(3):
         x = CX - 12 + i * 12
@@ -109,6 +109,29 @@ CURRENT = dict(label=12, labelY=84, name=26, nameY=118, keys=15, keysY=144, rule
 BUMPED = dict(label=14, labelY=80, name=30, nameY=120, keys=17, keysY=150, ruleY=166,
               body=19, lineH=27, bodyY=198, maxLines=6, glyph=40, glyphY=354, cap=14, capY=398, dotsY=408)
 FLOW = dict(BUMPED, flow=True)
+# One more notch. The body column widens a little (inset 44) so the longest
+# meanings still hold five lines.
+BUMPED2 = dict(label=16, labelY=78, name=34, nameY=122, keys=19, keysY=154, ruleY=170,
+               body=21, lineH=30, bodyY=204, maxLines=6, inset=44, glyph=46, glyphY=0, cap=16, capY=0,
+               dotsY=408, flow=True, gap=50, floor=56, capGap=44)
+
+
+def longest_cards(n=3):
+    """The n longest position texts in src/tarot_data.h, as card dicts."""
+    import re
+    src = open(HERE + "/../src/tarot_data.h").read()
+    names, glyphs = load_glyphs()
+    gsrc = open(HERE + "/../src/glyphs.cpp").read()
+    card_glyphs = re.findall(r"  (G_[A-Z]+),\s*// \d+", gsrc)
+    entries = re.findall(r'\{"([^"]+)", "([^"]+)", EL_([A-Z]+), "([^"]+)", "([^"]+)",\s*"[^"]*",\s*"([^"]*)",\s*"([^"]*)",\s*"([^"]*)",', src)
+    out = []
+    for i, (name, num, el, ruler, keys, past, present, future) in enumerate(entries):
+        for pos, text in (("Past", past), ("Present", present), ("Future", future)):
+            cap = "%s   %s   %s" % (num, ruler.upper(), el) if ruler.upper() != el else "%s   %s" % (num, el)
+            out.append(dict(pos=pos, name=name, keys=keys, glyph=card_glyphs[i], cap=cap, text=text))
+    out.sort(key=lambda c: -len(c["text"]))
+    return out[:n]
+
 
 CARDS = [
     dict(pos="Present", name="The High Priestess", keys="intuition, stillness, the unsaid", glyph="G_MOON",
@@ -120,10 +143,15 @@ CARDS = [
 ]
 
 if __name__ == "__main__":
-    specs = [("current", CURRENT), ("bumped", BUMPED), ("bumped + flow (firmware)", FLOW)]
-    sheet = Image.new("RGB", (len(specs) * (W + 20) + 20, len(CARDS) * (H + 40) + 20), (24, 24, 24))
+    if len(sys.argv) > 2 and sys.argv[2] == "longest":
+        specs = [("flashed (notch 1)", FLOW), ("notch 2", BUMPED2)]
+        cards = longest_cards(3)
+    else:
+        specs = [("current", CURRENT), ("bumped", BUMPED), ("bumped + flow (firmware)", FLOW)]
+        cards = CARDS
+    sheet = Image.new("RGB", (len(specs) * (W + 20) + 20, len(cards) * (H + 40) + 20), (24, 24, 24))
     d = ImageDraw.Draw(sheet)
-    for ci, card in enumerate(CARDS):
+    for ci, card in enumerate(cards):
         for si, (label, spec) in enumerate(specs):
             x = 20 + si * (W + 20)
             y = 20 + ci * (H + 40)

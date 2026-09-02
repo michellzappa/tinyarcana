@@ -70,6 +70,19 @@ static int16_t readWidthAt(int16_t baseline, int16_t *xLeft) {
 
 static const int16_t READ_LINE_H = 24;
 
+// The meaning page body: a touch wider than the reading column so the longest
+// meanings still hold five lines at 21 px.
+static int16_t meaningWidthAt(int16_t baseline, int16_t *xLeft) {
+#if UI_ROUND
+  int16_t h = (int16_t)(chordHalf((int16_t)(baseline - 6)) - 44);
+  if (h < 40) h = 40;
+  *xLeft = (int16_t)(CX - h);
+  return (int16_t)(2 * h);
+#else
+  return readWidthAt(baseline, xLeft);
+#endif
+}
+
 static float easeOut(float t) {
   if (t < 0) t = 0;
   if (t > 1) t = 1;
@@ -347,29 +360,31 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   char label[24];
   upper(label, sizeof label, POSITION_NAME[pos]);
 #if UI_ROUND
-  const int16_t labelY = 80, nameY = 120, keysY = 150, ruleY = 166, bodyY = 198;
+  const int16_t labelY = 78, nameY = 122, keysY = 154, ruleY = 170, bodyY = 204;
 #else
-  const int16_t labelY = 52, nameY = 92, keysY = 122, ruleY = 138, bodyY = 170;
+  const int16_t labelY = 50, nameY = 94, keysY = 126, ruleY = 142, bodyY = 176;
 #endif
+  const int16_t lineH = 30;
   txtCenter(lora_label, label, CX, labelY, COL_GOLD, 3);
   txtCenter(lora_name, c.name, CX, nameY, COL_IVORY);
-  txtCenter(lora_read_italic, c.keywords, CX, keysY, COL_DIM);
+  txtCenter(lora_keys, c.keywords, CX, keysY, COL_DIM);
   rule(ruleY, COL_GOLD_DIM);
-  const int16_t after = txtWrappedFn(lora_meaning, cardPositionText(idx, pos), readWidthAt, bodyY, 27, COL_IVORY, 6);
+  const int16_t after = txtWrappedFn(lora_meaning, cardPositionText(idx, pos), meaningWidthAt, bodyY, lineH, COL_IVORY, 6);
 
   // The card's Golden Dawn glyph, with numeral, attribution and element,
   // hung a fixed distance under the last line so the page reads as one block.
-  int16_t glyphY = (int16_t)(after - 27 + 44);
-  const int16_t glyphMaxY = DOTS_Y - 52;
+  // scripts/preview_read.py BUMPED2 mirrors these numbers.
+  int16_t glyphY = (int16_t)(after - lineH + 50);
+  const int16_t glyphMaxY = DOTS_Y - 56;
   if (glyphY > glyphMaxY) glyphY = glyphMaxY;
-  glyphDraw(CARD_GLYPH[idx], CX, glyphY, 40, COL_GOLD);
+  glyphDraw(CARD_GLYPH[idx], CX, glyphY, 46, COL_GOLD);
   char cap[48];
   char ruler[16], el[12];
   upper(ruler, sizeof ruler, c.ruler);
   upper(el, sizeof el, ELEMENT_NAME[c.element]);
   if (strcmp(ruler, el) == 0) snprintf(cap, sizeof cap, "%s   %s", c.numeral, el);
   else snprintf(cap, sizeof cap, "%s   %s   %s", c.numeral, ruler, el);
-  txtCenter(lora_label, cap, CX, (int16_t)(glyphY + 38), COL_GOLD_DIM, 2);
+  txtCenter(lora_label, cap, CX, (int16_t)(glyphY + 44), COL_GOLD_DIM, 2);
 
   dots(3, pos, DOTS_Y);
   if (pos == 2) hint("TAP: SPREAD   BOOT: SPREAD", "PWR: INNER READING");

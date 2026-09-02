@@ -10,6 +10,7 @@
 #include "fonts/lora_read_italic.h"
 #include "fonts/lora_label.h"
 #include "fonts/lora_name.h"
+#include "fonts/lora_keys.h"
 #include "fonts/lora_meaning.h"
 #include "fonts/lora_small.h"
 #include "fonts/lora_title.h"
