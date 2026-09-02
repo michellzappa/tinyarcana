@@ -1,5 +1,7 @@
 // The 22 majors, Rider-Waite-Smith order (Strength VIII, Justice XI).
-// Elements and rulers follow the Golden Dawn attributions. Rows are the
+// Elements and rulers follow the Golden Dawn attributions (Book T): twelve
+// zodiac signs, seven planets, and the three mother-letter elements for the
+// Fool, the Hanged Man and Judgement. glyphs.cpp draws the matching symbol. Rows are the
 // three sevens of the Fool's Journey: I-VII the outer world, VIII-XIV the
 // inner world, XV-XXI the greater world; the Fool stands on the threshold.
 //
@@ -27,7 +29,7 @@ static const char *const ELEMENT_NAME[4] = {"Fire", "Water", "Air", "Earth"};
 static const char *const POSITION_NAME[3] = {"Past", "Present", "Future"};
 
 static const CardInfo CARDS[22] = {
-  {"The Fool", "0", EL_AIR, "Uranus", "beginnings, trust, the leap",
+  {"The Fool", "0", EL_AIR, "Air", "beginnings, trust, the leap",
    "The Fool is the step taken before the ground is proven.",
    "You started this without a map, on trust rather than proof. That innocence is what made the start possible. It also means some of what you carry was never examined.",
    "You stand at an edge, bag light, dog barking at your heels. The move in front of you cannot be made carefully. It can only be made.",
@@ -99,7 +101,7 @@ static const CardInfo CARDS[22] = {
    "Take the situation exactly as it is, without flattering yourself. Actions have weight here. Balance the scales before someone else does.",
    "Consequence arrives. If you have been straight, it will feel like relief. If not, this is your notice.",
    "What would you decide if you had to be fair to everyone, including yourself?"},
-  {"The Hanged Man", "XII", EL_WATER, "Neptune", "suspension, surrender, a new angle",
+  {"The Hanged Man", "XII", EL_WATER, "Water", "suspension, surrender, a new angle",
    "The Hanged Man is the only figure in the deck who is smiling.",
    "You were held in place and could not move things forward. Looking back, the pause taught you what forcing never could.",
    "Nothing is going to move by pushing. Stop pushing. Let yourself hang until the world turns the right way up.",
@@ -147,7 +149,7 @@ static const CardInfo CARDS[22] = {
    "This is clear. Stop looking for the catch. Enjoy the thing in front of you with the whole of yourself.",
    "Success and warmth are coming, and they will be simple. Let them be simple. Do not complicate a good day.",
    "What is already good that you keep waiting to trust?"},
-  {"Judgement", "XX", EL_FIRE, "Pluto", "reckoning, awakening, the call",
+  {"Judgement", "XX", EL_FIRE, "Fire", "reckoning, awakening, the call",
    "Judgement is the trumpet you cannot pretend not to hear.",
    "You were called, and you answered. Something old was laid to rest and you rose from it changed.",
    "A reckoning is here. Look at the whole record, forgive what can be forgiven, and stand up. This is a summons, not a sentence.",

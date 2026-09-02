@@ -15,7 +15,10 @@ no API, no cloud.
 3. **Deal.** Three cards slide out, face down: Past, Present, Future.
 4. **Turn.** Tap a card to flip it.
 5. **Read.** Tap a turned card: it fills the screen. Tap it away for its
-   meaning in that position.
+   meaning in that position, under the card's Golden Dawn glyph: a zodiac
+   sign, a planet, or an elemental triangle for the Fool, the Hanged Man and
+   Judgement. The glyphs are drawn from stroke tables (`src/glyphs.cpp`), so
+   no symbol font is embedded.
 6. **Go inside.** PWR opens the inner reading.
 
 Every step has a sound: a bell on boot, a low drone that rises in pitch and

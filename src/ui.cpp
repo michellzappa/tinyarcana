@@ -5,6 +5,7 @@
 
 #include "board_display.h"
 #include "cards.h"
+#include "glyphs.h"
 #include "tarot_data.h"
 #include "text.h"
 
@@ -346,9 +347,9 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   char label[24];
   upper(label, sizeof label, POSITION_NAME[pos]);
 #if UI_ROUND
-  const int16_t labelY = 84, nameY = 118, keysY = 144, ruleY = 160, bodyY = 190, elY = 384;
+  const int16_t labelY = 84, nameY = 118, keysY = 144, ruleY = 160, bodyY = 190, glyphY = 364, capY = 398;
 #else
-  const int16_t labelY = 56, nameY = 90, keysY = 116, ruleY = 132, bodyY = 162, elY = 384;
+  const int16_t labelY = 56, nameY = 90, keysY = 116, ruleY = 132, bodyY = 162, glyphY = 364, capY = 398;
 #endif
   txtCenter(lora_small, label, CX, labelY, COL_GOLD, 3);
   txtCenter(lora_title, c.name, CX, nameY, COL_IVORY);
@@ -356,11 +357,15 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   rule(ruleY, COL_GOLD_DIM);
   txtWrappedFn(lora_read, cardPositionText(idx, pos), readWidthAt, bodyY, READ_LINE_H, COL_IVORY, 7);
 
-  char sub[32];
-  char el[12];
+  // The card's Golden Dawn glyph, with numeral, attribution and element.
+  glyphDraw(CARD_GLYPH[idx], CX, glyphY, 34, COL_GOLD);
+  char cap[48];
+  char ruler[16], el[12];
+  upper(ruler, sizeof ruler, c.ruler);
   upper(el, sizeof el, ELEMENT_NAME[c.element]);
-  snprintf(sub, sizeof sub, "%s   %s", c.numeral, el);
-  txtCenter(lora_small, sub, CX, elY, COL_GOLD_DIM, 2);
+  if (strcmp(ruler, el) == 0) snprintf(cap, sizeof cap, "%s   %s", c.numeral, el);
+  else snprintf(cap, sizeof cap, "%s   %s   %s", c.numeral, ruler, el);
+  txtCenter(lora_small, cap, CX, capY, COL_GOLD_DIM, 2);
 
   dots(3, pos, DOTS_Y);
   if (pos == 2) hint("TAP: SPREAD   BOOT: SPREAD", "PWR: INNER READING");
