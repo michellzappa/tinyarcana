@@ -6,7 +6,7 @@
 
 #include "tarot_engine.h"
 
-static const uint16_t COL_BG = 0x0843;         // RGB(9, 8, 24) deep night
+static const uint16_t COL_BG = 0x0000;         // true black: OLED pixels off
 static const uint16_t COL_GOLD = 0xD58C;       // RGB(214,176,96)
 static const uint16_t COL_GOLD_DIM = 0x7B27;   // RGB(120,100,60)
 static const uint16_t COL_IVORY = 0xEF19;      // RGB(232,224,205)
