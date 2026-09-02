@@ -208,8 +208,14 @@ void uiCut(float p) {
 void uiDeal(float p) {
   gfx->clear(COL_BG);
   deckTitle();
-  cardDrawBack(DECK_CX + 5, DECK_Y + 5, DECK_W, DECK_H, 1.0f, 0.0f);
-  cardDrawBack(DECK_CX, DECK_Y, DECK_W, DECK_H, 1.0f, 0.2f);
+  // The deck stays while cards leave it, then folds away edge-on once the
+  // last card has gone, so nothing is left under the spread.
+  const float lastLeaves = 2 * 0.22f;
+  const float fold = 1.0f - easeOut((p - lastLeaves) / 0.25f);
+  if (fold > 0.02f) {
+    cardDrawBack(DECK_CX + 5, DECK_Y + 5, DECK_W, DECK_H, fold, 0.0f);
+    cardDrawBack(DECK_CX, DECK_Y, DECK_W, DECK_H, fold, 0.2f * fold);
+  }
   for (uint8_t i = 0; i < 3; i++) {
     const float start = i * 0.22f;
     const float u = easeOut((p - start) / 0.5f);
