@@ -145,6 +145,50 @@ static void deckTitle() {
 #endif
 }
 
+// A point on the outline of a rounded rectangle, t in 0..1 clockwise from
+// top centre. Used to fill the deck's outline as the shuffle charges.
+static void outlinePoint(int16_t x0, int16_t y0, int16_t w, int16_t h, int16_t r,
+                         float t, int16_t *px, int16_t *py) {
+  const float straightW = (float)(w - 2 * r), straightH = (float)(h - 2 * r);
+  const float arc = 1.5707963f * r;
+  const float total = 2 * straightW + 2 * straightH + 4 * arc;
+  float d = t * total;
+  // Segments clockwise: top-right half, arc, right, arc, bottom, arc, left, arc, top-left half.
+  const float half = straightW / 2;
+  if (d < half) { *px = (int16_t)(x0 + w / 2 + d); *py = y0; return; }
+  d -= half;
+  if (d < arc) { const float a = d / r; *px = (int16_t)(x0 + w - r + r * sinf(a)); *py = (int16_t)(y0 + r - r * cosf(a)); return; }
+  d -= arc;
+  if (d < straightH) { *px = (int16_t)(x0 + w - 1); *py = (int16_t)(y0 + r + d); return; }
+  d -= straightH;
+  if (d < arc) { const float a = d / r; *px = (int16_t)(x0 + w - r + r * cosf(a)); *py = (int16_t)(y0 + h - r + r * sinf(a)); return; }
+  d -= arc;
+  if (d < straightW) { *px = (int16_t)(x0 + w - r - d); *py = (int16_t)(y0 + h - 1); return; }
+  d -= straightW;
+  if (d < arc) { const float a = d / r; *px = (int16_t)(x0 + r - r * sinf(a)); *py = (int16_t)(y0 + h - r + r * cosf(a)); return; }
+  d -= arc;
+  if (d < straightH) { *px = x0; *py = (int16_t)(y0 + h - r - d); return; }
+  d -= straightH;
+  if (d < arc) { const float a = d / r; *px = (int16_t)(x0 + r - r * cosf(a)); *py = (int16_t)(y0 + r - r * sinf(a)); return; }
+  d -= arc;
+  *px = (int16_t)(x0 + r + d); *py = y0;
+}
+
+static void deckOutline(float progress) {
+  const int16_t pad = 10;
+  const int16_t x0 = DECK_CX - DECK_W / 2 - pad, y0 = DECK_Y - pad;
+  const int16_t w = DECK_W + 2 * pad, h = DECK_H + 2 * pad;
+  const int16_t r = DECK_W / 16 + pad;
+  const int16_t steps = 720;
+  for (int16_t i = 0; i < steps; i++) {
+    const float t = i / (float)steps;
+    int16_t x, y;
+    outlinePoint(x0, y0, w, h, r, t, &x, &y);
+    if (t <= progress) gfx->fillCircle(x, y, 2, COL_GOLD);
+    else gfx->drawPixel(x, y, COL_RULE);
+  }
+}
+
 void uiDeck(uint32_t nowMs, bool holding, float progress) {
   gfx->clear(COL_BG);
   deckTitle();
@@ -163,10 +207,7 @@ void uiDeck(uint32_t nowMs, bool holding, float progress) {
   cardDrawBack(DECK_CX + jx, DECK_Y + jy, DECK_W, DECK_H, 1.0f, glow);
 
   if (holding) {
-    const int16_t barY = DECK_Y + DECK_H + 18;
-    const int16_t x0 = DECK_CX - DECK_W / 2;
-    gfx->drawFastHLine(x0, barY, DECK_W, COL_RULE);
-    gfx->fillRect(x0, barY - 1, (int16_t)(DECK_W * progress), 3, COL_GOLD);
+    deckOutline(progress);
     hint(progress >= 1.0f ? "RELEASE TO CUT" : "SHUFFLING . . .");
   } else {
     hint("HOLD THE DECK TO SHUFFLE");
