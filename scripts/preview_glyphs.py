@@ -8,25 +8,31 @@ import sys
 
 from PIL import Image
 
-src = open("src/glyphs.cpp").read()
-table = src[src.index("GLYPH_TABLE_BEGIN"):src.index("GLYPH_TABLE_END")]
-names = re.findall(r"// (G_[A-Z]+)", table)
-tokens = re.findall(r"(SEG|ARC|CIRC|DISC|END)(?:\(([^)]*)\))?", table)
-glyphs, cur = [], []
-for kind, args in tokens:
-    if kind == "END":
-        glyphs.append(cur)
-        cur = []
-        continue
-    v = [float(x.strip().rstrip("f")) for x in args.split(",")]
-    if kind == "CIRC":
-        cur.append(("ARC", v[0], v[1], v[2], 0, 360))
-    elif kind == "SEG":
-        cur.append(("SEG", *v))
-    elif kind == "ARC":
-        cur.append(("ARC", *v))
-    else:
-        cur.append(("DISC", *v))
+HERE = __import__("os").path.dirname(__import__("os").path.abspath(__file__))
+
+
+def load_glyphs():
+    """Returns (names, glyphs) parsed from src/glyphs.cpp."""
+    src = open(HERE + "/../src/glyphs.cpp").read()
+    table = src[src.index("GLYPH_TABLE_BEGIN"):src.index("GLYPH_TABLE_END")]
+    names = re.findall(r"// (G_[A-Z]+)", table)
+    tokens = re.findall(r"(SEG|ARC|CIRC|DISC|END)(?:\(([^)]*)\))?", table)
+    glyphs, cur = [], []
+    for kind, args in tokens:
+        if kind == "END":
+            glyphs.append(cur)
+            cur = []
+            continue
+        v = [float(x.strip().rstrip("f")) for x in args.split(",")]
+        if kind == "CIRC":
+            cur.append(("ARC", v[0], v[1], v[2], 0, 360))
+        elif kind == "SEG":
+            cur.append(("SEG", *v))
+        elif kind == "ARC":
+            cur.append(("ARC", *v))
+        else:
+            cur.append(("DISC", *v))
+    return names, glyphs
 
 
 def seg_dist(px, py, x0, y0, x1, y1):
@@ -54,18 +60,13 @@ def arc_dist(px, py, cx, cy, r, a0, a1):
     return min(math.hypot(px - e0[0], py - e0[1]), math.hypot(px - e1[0], py - e1[1]))
 
 
-size = int(sys.argv[2]) if len(sys.argv) > 2 else 48
-pad = 12
-cols = 6
-rows = (len(glyphs) + cols - 1) // cols
-img = Image.new("L", (cols * (size + pad) + pad, rows * (size + pad + 14) + pad), 0)
-px = img.load()
-hw = size / 32.0
-for n, strokes in enumerate(glyphs):
-    gx = pad + (n % cols) * (size + pad)
-    gy = pad + (n // cols) * (size + pad + 14)
+def glyph_alpha(strokes, size):
+    """Alpha mask (size x size list of rows) exactly as glyphDraw() computes it."""
+    hw = size / 32.0
+    rows = []
     for j in range(size):
         uy = (j + 0.5) / size
+        row = []
         for i in range(size):
             ux = (i + 0.5) / size
             best = 1e9
@@ -77,8 +78,29 @@ for n, strokes in enumerate(glyphs):
                 else:
                     d = max(0, math.hypot(ux - s[1], uy - s[2]) - s[3]) * size - hw
                 best = min(best, d)
-            a = max(0, min(1, hw + 0.5 - best))
-            px[gx + i, gy + j] = int(a * 255)
-img = img.resize((img.width * 2, img.height * 2), Image.NEAREST)
-img.save(sys.argv[1])
-print("%d glyphs: %s" % (len(glyphs), " ".join(names)))
+            row.append(max(0, min(1, hw + 0.5 - best)))
+        rows.append(row)
+    return rows
+
+
+def main():
+    names, glyphs = load_glyphs()
+    size = int(sys.argv[2]) if len(sys.argv) > 2 else 48
+    pad = 12
+    cols = 6
+    nrows = (len(glyphs) + cols - 1) // cols
+    img = Image.new("L", (cols * (size + pad) + pad, nrows * (size + pad + 14) + pad), 0)
+    px = img.load()
+    for n, strokes in enumerate(glyphs):
+        gx = pad + (n % cols) * (size + pad)
+        gy = pad + (n // cols) * (size + pad + 14)
+        for j, row in enumerate(glyph_alpha(strokes, size)):
+            for i, a in enumerate(row):
+                px[gx + i, gy + j] = int(a * 255)
+    img = img.resize((img.width * 2, img.height * 2), Image.NEAREST)
+    img.save(sys.argv[1])
+    print("%d glyphs: %s" % (len(glyphs), " ".join(names)))
+
+
+if __name__ == "__main__":
+    main()

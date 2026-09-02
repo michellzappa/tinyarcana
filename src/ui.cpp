@@ -347,25 +347,29 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   char label[24];
   upper(label, sizeof label, POSITION_NAME[pos]);
 #if UI_ROUND
-  const int16_t labelY = 84, nameY = 118, keysY = 144, ruleY = 160, bodyY = 190, glyphY = 364, capY = 398;
+  const int16_t labelY = 80, nameY = 120, keysY = 150, ruleY = 166, bodyY = 198;
 #else
-  const int16_t labelY = 56, nameY = 90, keysY = 116, ruleY = 132, bodyY = 162, glyphY = 364, capY = 398;
+  const int16_t labelY = 52, nameY = 92, keysY = 122, ruleY = 138, bodyY = 170;
 #endif
-  txtCenter(lora_small, label, CX, labelY, COL_GOLD, 3);
-  txtCenter(lora_title, c.name, CX, nameY, COL_IVORY);
-  txtCenter(lora_italic, c.keywords, CX, keysY, COL_DIM);
+  txtCenter(lora_label, label, CX, labelY, COL_GOLD, 3);
+  txtCenter(lora_name, c.name, CX, nameY, COL_IVORY);
+  txtCenter(lora_read_italic, c.keywords, CX, keysY, COL_DIM);
   rule(ruleY, COL_GOLD_DIM);
-  txtWrappedFn(lora_read, cardPositionText(idx, pos), readWidthAt, bodyY, READ_LINE_H, COL_IVORY, 7);
+  const int16_t after = txtWrappedFn(lora_meaning, cardPositionText(idx, pos), readWidthAt, bodyY, 27, COL_IVORY, 6);
 
-  // The card's Golden Dawn glyph, with numeral, attribution and element.
-  glyphDraw(CARD_GLYPH[idx], CX, glyphY, 34, COL_GOLD);
+  // The card's Golden Dawn glyph, with numeral, attribution and element,
+  // hung a fixed distance under the last line so the page reads as one block.
+  int16_t glyphY = (int16_t)(after - 27 + 44);
+  const int16_t glyphMaxY = DOTS_Y - 52;
+  if (glyphY > glyphMaxY) glyphY = glyphMaxY;
+  glyphDraw(CARD_GLYPH[idx], CX, glyphY, 40, COL_GOLD);
   char cap[48];
   char ruler[16], el[12];
   upper(ruler, sizeof ruler, c.ruler);
   upper(el, sizeof el, ELEMENT_NAME[c.element]);
   if (strcmp(ruler, el) == 0) snprintf(cap, sizeof cap, "%s   %s", c.numeral, el);
   else snprintf(cap, sizeof cap, "%s   %s   %s", c.numeral, ruler, el);
-  txtCenter(lora_small, cap, CX, capY, COL_GOLD_DIM, 2);
+  txtCenter(lora_label, cap, CX, (int16_t)(glyphY + 38), COL_GOLD_DIM, 2);
 
   dots(3, pos, DOTS_Y);
   if (pos == 2) hint("TAP: SPREAD   BOOT: SPREAD", "PWR: INNER READING");
