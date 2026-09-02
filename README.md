@@ -44,7 +44,7 @@ Not a lookup. `src/tarot_engine.cpp` builds the reading from the spread:
 | --- | --- | --- | --- | --- |
 | **Touch** | hold to shuffle | tap to turn / open a card | tap: card to meaning, meaning to spread; swipe between cards | tap for next page |
 | **BOOT** | quick draw (no shuffle) | turn next card, then open | next card | next page |
-| **BOOT hold** | | new reading | new reading | new reading |
+| **BOOT + PWR** or **BOOT hold** | | close the reading | close the reading | close the reading |
 | **PWR** | help | inner reading (turns remaining cards first) | inner reading | back to spread |
 | **PWR hold ~6 s** | power off (hardware) | | | |
 

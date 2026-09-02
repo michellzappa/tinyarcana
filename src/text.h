@@ -9,6 +9,8 @@ extern const AaFont lora_title;    // 26px, names
 extern const AaFont lora_head;     // 18px, screen headers
 extern const AaFont lora_body;     // 15px, body text
 extern const AaFont lora_italic;   // 15px, questions and asides
+extern const AaFont lora_read;     // 17px, the readings
+extern const AaFont lora_read_italic;
 extern const AaFont lora_small;    // 12px, labels (use uppercase + tracking)
 
 uint16_t blend565(uint16_t bg, uint16_t fg, uint8_t a);
@@ -54,4 +56,6 @@ struct TxtLine {
 // Mutates text: paragraph separators become NULs so lines can point into it.
 // Every line is centered in the width its row allows.
 uint16_t txtLayout(char *text, TxtWidthFn widthAt, int16_t yTop, int16_t yBottom,
-                   TxtLine *out, uint16_t maxLines, uint8_t *pages);
+                   TxtLine *out, uint16_t maxLines, uint8_t *pages,
+                   const AaFont &body = lora_body, const AaFont &italic = lora_italic,
+                   int16_t lineH = 21);

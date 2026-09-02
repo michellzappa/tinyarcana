@@ -3,7 +3,8 @@
 //   boot -> deck -(hold, release)-> cut -> deal -> spread -(tap)-> card -(tap)-> meaning
 //                                                   |                            |
 //                                                  PWR -------> inner <---------PWR
-//   Hold BOOT anywhere after the deal: new reading.
+//   Close a reading from any screen after the deal: press PWR while holding
+//   BOOT, or hold BOOT on its own.
 #include <Arduino.h>
 
 #include "audio.h"
@@ -121,12 +122,22 @@ void loop() {
   InputFrame in;
   boardInputPoll(&in);
 
-  // Hold BOOT: start over from the deck, from any screen past the deal.
-  if (in.aLong && screen >= SCR_SPREAD) {
-    Serial.println("btn BOOT long -> deck");
+  // Close the reading: BOOT held + PWR, or BOOT held on its own for 800 ms.
+  // After the chord the BOOT hold that is still in progress must not fire
+  // its own reset (or count as a press) once we are back on the deck.
+  static bool bootChordUsed = false;
+  if (!in.aDown) bootChordUsed = false;
+  if (screen >= SCR_SPREAD && ((in.bPressed && in.aDown) || in.aLong)) {
+    Serial.println(in.aLong ? "btn BOOT long -> deck" : "btn BOOT+PWR -> deck");
+    bootChordUsed = true;
     audioPlay(SND_BACK);
     go(SCR_DECK);
     return;
+  }
+  if (bootChordUsed) {
+    in.aLong = false;
+    in.aPressed = false;
+    in.bPressed = false;
   }
 
   switch (screen) {

@@ -270,6 +270,8 @@ void boardInputPoll(InputFrame *out) {
   const uint32_t now = millis();
 
   // --- BOOT ---
+  // A short press reports on release, so a BOOT held for the BOOT+PWR chord
+  // or for the long hold does not also fire the short action on the way in.
   const bool bootDown = digitalRead(BTN_BOOT) == LOW;
   if (bootDown != bootWas && (now - bootEdgeMs) >= DEBOUNCE_MS) {
     bootEdgeMs = now;
@@ -277,6 +279,7 @@ void boardInputPoll(InputFrame *out) {
     if (bootDown) {
       bootDownMs = now;
       bootLongFired = false;
+    } else if (now - bootDownMs < LONG_MS) {
       out->aPressed = true;
     }
   }
@@ -284,6 +287,7 @@ void boardInputPoll(InputFrame *out) {
     bootLongFired = true;
     out->aLong = true;
   }
+  out->aDown = bootWas;
 
   // --- PWR ---
   out->bPressed = pwrShortPressed(now);

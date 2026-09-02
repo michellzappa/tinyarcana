@@ -40,6 +40,8 @@ FONTS = [
     ("lora_head", "Lora-VariableFont_wght.ttf", 18, 600),
     ("lora_body", "Lora-VariableFont_wght.ttf", 15, 400),
     ("lora_italic", "Lora-Italic-VariableFont_wght.ttf", 15, 400),
+    ("lora_read", "Lora-VariableFont_wght.ttf", 17, 400),
+    ("lora_read_italic", "Lora-Italic-VariableFont_wght.ttf", 17, 400),
     ("lora_small", "Lora-VariableFont_wght.ttf", 12, 600),
 ]
 FIRST, LAST = 32, 126

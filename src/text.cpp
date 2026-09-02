@@ -6,6 +6,8 @@
 #include "fonts/lora_body.h"
 #include "fonts/lora_head.h"
 #include "fonts/lora_italic.h"
+#include "fonts/lora_read.h"
+#include "fonts/lora_read_italic.h"
 #include "fonts/lora_small.h"
 #include "fonts/lora_title.h"
 
@@ -140,7 +142,8 @@ static const int16_t LAYOUT_GAP_H = 8;
 static const int16_t LAYOUT_HEAD_H = 24;
 
 uint16_t txtLayout(char *text, TxtWidthFn widthAt, int16_t yTop, int16_t yBottom,
-                   TxtLine *out, uint16_t maxLines, uint8_t *pages) {
+                   TxtLine *out, uint16_t maxLines, uint8_t *pages,
+                   const AaFont &bodyFont, const AaFont &italicFont, int16_t bodyLineH) {
   uint16_t count = 0;
   uint8_t page = 0;
   int16_t y = yTop;
@@ -164,10 +167,10 @@ uint16_t txtLayout(char *text, TxtWidthFn widthAt, int16_t yTop, int16_t yBottom
       continue;
     }
     const AaFont &f = style == TXT_HEAD ? lora_small
-                      : style == TXT_ITALIC ? lora_italic : lora_body;
-    const int16_t lineH = style == TXT_HEAD ? LAYOUT_HEAD_H : LAYOUT_LINE_H;
+                      : style == TXT_ITALIC ? italicFont : bodyFont;
+    const int16_t lineH = style == TXT_HEAD ? LAYOUT_HEAD_H : bodyLineH;
     // Keep a heading on the same page as at least one line of its body.
-    if (y > yBottom || (style == TXT_HEAD && y + LAYOUT_LINE_H > yBottom)) {
+    if (y > yBottom || (style == TXT_HEAD && y + bodyLineH > yBottom)) {
       page++;
       y = yTop;
     }

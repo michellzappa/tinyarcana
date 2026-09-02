@@ -35,6 +35,16 @@ static int16_t widthAt(int16_t baseline, int16_t *xLeft) {
   *xLeft = (int16_t)(CX - h);
   return (int16_t)(2 * h);
 }
+
+// The readings sit in a narrower column: shorter lines read better and the
+// block stays clear of the arc.
+static const int16_t READ_EDGE = 52;
+static int16_t readWidthAt(int16_t baseline, int16_t *xLeft) {
+  int16_t h = (int16_t)(chordHalf((int16_t)(baseline - 6)) - READ_EDGE);
+  if (h < 40) h = 40;
+  *xLeft = (int16_t)(CX - h);
+  return (int16_t)(2 * h);
+}
 #else
 static const int16_t MARGIN = 14;
 static const int16_t CONTENT_W = SCR_W - 2 * MARGIN;   // 340
@@ -48,7 +58,16 @@ static int16_t widthAt(int16_t baseline, int16_t *xLeft) {
   *xLeft = MARGIN;
   return CONTENT_W;
 }
+
+static const int16_t READ_MARGIN = 26;
+static int16_t readWidthAt(int16_t baseline, int16_t *xLeft) {
+  (void)baseline;
+  *xLeft = READ_MARGIN;
+  return (int16_t)(SCR_W - 2 * READ_MARGIN);
+}
 #endif
+
+static const int16_t READ_LINE_H = 24;
 
 static float easeOut(float t) {
   if (t < 0) t = 0;
@@ -162,7 +181,7 @@ void uiHelp() {
       "Hold the deck to shuffle. Your touch feeds the draw, on top of the chip's hardware noise.",
       "Release to cut. Three cards are dealt: past, present, future.",
       "Tap a card to turn it. Tap it again to read it.",
-      "BOOT steps through the cards. Hold BOOT for a new reading.",
+      "BOOT steps through the cards. Press BOOT and PWR together, or hold BOOT, to close the reading.",
       "PWR opens the inner reading: how the three cards speak to each other.",
   };
   int16_t y = (int16_t)(HEAD_Y + 44);
@@ -244,10 +263,10 @@ void uiSpread(const Spread &s, int8_t flipping, float flipPhase) {
     snprintf(buf, sizeof buf, "Beneath them: %s", CARDS[h].name);
 #if UI_ROUND
     txtCenter(lora_italic, buf, CX, 396, COL_DIM);
-    hint("TAP A CARD TO READ IT", "PWR: INNER READING");
+    hint("TAP A CARD TO READ IT", "PWR: INNER   BOOT+PWR: CLOSE");
 #else
     txtCenter(lora_italic, buf, CX, 386, COL_DIM);
-    hint("TAP A CARD TO READ IT", "PWR: INNER READING");
+    hint("TAP A CARD TO READ IT", "PWR: INNER   BOOT+PWR: CLOSE");
 #endif
   } else {
     hint("TAP A CARD TO TURN IT");
@@ -276,15 +295,15 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   char label[24];
   upper(label, sizeof label, POSITION_NAME[pos]);
 #if UI_ROUND
-  const int16_t labelY = 88, nameY = 122, keysY = 148, ruleY = 164, bodyY = 192, elY = 372;
+  const int16_t labelY = 84, nameY = 118, keysY = 144, ruleY = 160, bodyY = 190, elY = 384;
 #else
-  const int16_t labelY = 60, nameY = 94, keysY = 120, ruleY = 136, bodyY = 166, elY = 372;
+  const int16_t labelY = 56, nameY = 90, keysY = 116, ruleY = 132, bodyY = 162, elY = 384;
 #endif
   txtCenter(lora_small, label, CX, labelY, COL_GOLD, 3);
   txtCenter(lora_title, c.name, CX, nameY, COL_IVORY);
   txtCenter(lora_italic, c.keywords, CX, keysY, COL_DIM);
   rule(ruleY, COL_GOLD_DIM);
-  txtWrappedFn(lora_body, cardPositionText(idx, pos), widthAt, bodyY, 21, COL_IVORY, 8);
+  txtWrappedFn(lora_read, cardPositionText(idx, pos), readWidthAt, bodyY, READ_LINE_H, COL_IVORY, 7);
 
   char sub[32];
   char el[12];
@@ -309,7 +328,8 @@ static const int16_t INNER_TOP = 96, INNER_BOTTOM = 404;
 
 uint8_t uiInnerPrepare(char *text) {
   uint8_t pages = 1;
-  innerCount = txtLayout(text, widthAt, INNER_TOP, INNER_BOTTOM, innerLines, INNER_MAX_LINES, &pages);
+  innerCount = txtLayout(text, readWidthAt, INNER_TOP, INNER_BOTTOM, innerLines,
+                         INNER_MAX_LINES, &pages, lora_read, lora_read_italic, READ_LINE_H);
   return pages;
 }
 
@@ -337,9 +357,9 @@ void uiInner(const Spread &s, uint8_t page, uint8_t pages) {
     if (l.style == TXT_HEAD) {
       txtDraw(lora_small, l.s, l.x, l.y, COL_GOLD, (int16_t)l.len, 2);
     } else if (l.style == TXT_ITALIC) {
-      txtDraw(lora_italic, l.s, l.x, l.y, COL_GOLD, (int16_t)l.len);
+      txtDraw(lora_read_italic, l.s, l.x, l.y, COL_GOLD, (int16_t)l.len);
     } else {
-      txtDraw(lora_body, l.s, l.x, l.y, COL_IVORY, (int16_t)l.len);
+      txtDraw(lora_read, l.s, l.x, l.y, COL_IVORY, (int16_t)l.len);
     }
   }
 

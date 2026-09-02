@@ -3,7 +3,8 @@
 #include <Arduino.h>
 
 struct InputFrame {
-  bool aPressed;      // BOOT rising edge
+  bool aDown;         // BOOT held right now
+  bool aPressed;      // BOOT short press, reported on release
   bool aLong;         // BOOT held >= 800 ms (once per hold)
   bool bPressed;      // PWR short press (release < 800 ms)
   bool touchDown;     // finger on glass right now
