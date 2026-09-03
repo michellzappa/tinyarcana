@@ -1,4 +1,4 @@
-# esp32-tarot
+# tinyarcana
 
 A tarot reader for the [Waveshare ESP32-S3-Touch-AMOLED-1.75](https://docs.waveshare.com/ESP32-S3-Touch-AMOLED-1.75)
 round display (466x466), with the 1.8" portrait board as a second target.
