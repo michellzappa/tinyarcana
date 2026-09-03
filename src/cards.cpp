@@ -8,7 +8,15 @@
 #include "text.h"
 
 static bool fsOk = false;
-static uint16_t *cache[22][2] = {};
+static const DeckDefinition *activeDeck = nullptr;
+static uint16_t *cache[MAJOR_COUNT] = {};
+
+static void clearCache() {
+  for (uint8_t i = 0; i < MAJOR_COUNT; i++) {
+    if (cache[i]) free(cache[i]);
+    cache[i] = nullptr;
+  }
+}
 
 bool cardsBegin() {
   fsOk = LittleFS.begin(false);
@@ -18,24 +26,36 @@ bool cardsBegin() {
   }
   Serial.printf("littlefs: %u/%u KB\n", (unsigned)(LittleFS.usedBytes() / 1024),
                 (unsigned)(LittleFS.totalBytes() / 1024));
-  char path[32];
-  snprintf(path, sizeof path, "/cards/00_%dx%d.565", CARD_W[CARD_S], CARD_H[CARD_S]);
-  return LittleFS.exists(path);
+  return true;
 }
 
 bool cardsReady() { return fsOk; }
 
+bool cardsSelectDeck(const DeckDefinition &deck) {
+  if (!activeDeck || activeDeck != &deck) {
+    clearCache();
+    activeDeck = &deck;
+  }
+  if (!fsOk) return false;
+  char path[96];
+  snprintf(path, sizeof path, "/decks/%s/%02u_%dx%d.565", deck.assetDir, 0,
+           CARD_SRC_W, CARD_SRC_H);
+  return LittleFS.exists(path);
+}
+
 const uint16_t *cardBitmap(uint8_t idx, CardSize sz) {
-  if (idx > 21 || !fsOk) return nullptr;
-  if (cache[idx][sz]) return cache[idx][sz];
-  char path[32];
-  snprintf(path, sizeof path, "/cards/%02u_%dx%d.565", idx, CARD_W[sz], CARD_H[sz]);
+  (void)sz;
+  if (idx >= MAJOR_COUNT || !fsOk || !activeDeck) return nullptr;
+  if (cache[idx]) return cache[idx];
+  char path[96];
+  snprintf(path, sizeof path, "/decks/%s/%02u_%dx%d.565", activeDeck->assetDir,
+           idx, CARD_SRC_W, CARD_SRC_H);
   File f = LittleFS.open(path, "r");
   if (!f) {
     Serial.printf("cards: missing %s\n", path);
     return nullptr;
   }
-  const size_t bytes = (size_t)CARD_W[sz] * CARD_H[sz] * 2;
+  const size_t bytes = (size_t)CARD_SRC_W * CARD_SRC_H * 2;
   uint16_t *buf = (uint16_t *)ps_malloc(bytes);
   if (!buf) { f.close(); return nullptr; }
   const size_t got = f.read((uint8_t *)buf, bytes);
@@ -45,7 +65,7 @@ const uint16_t *cardBitmap(uint8_t idx, CardSize sz) {
     free(buf);
     return nullptr;
   }
-  cache[idx][sz] = buf;
+  cache[idx] = buf;
   return buf;
 }
 
@@ -90,8 +110,9 @@ void cardDrawFace(uint8_t idx, CardSize sz, int16_t cx, int16_t y, float squash)
         row[px] = bmp ? COL_EDGE : RGB565(40, 36, 48);
         continue;
       }
-      const int16_t sx = (int16_t)((int32_t)dx * w / dw);
-      row[px] = bmp[(int32_t)dy * w + sx];
+      const int16_t sx = (int16_t)((int32_t)dx * CARD_SRC_W / dw);
+      const int16_t sy = (int16_t)((int32_t)dy * CARD_SRC_H / h);
+      row[px] = bmp[(int32_t)sy * CARD_SRC_W + sx];
     }
   }
 }
@@ -100,7 +121,7 @@ void cardDrawFaceScaled(uint8_t idx, int16_t cx, int16_t y, int16_t w, int16_t h
   const uint16_t *bmp = cardBitmap(idx, CARD_L);
   uint16_t *fb = gfx->fb();
   if (!fb || !bmp || w < 2 || h < 2) return;
-  const int16_t sw = CARD_W[CARD_L], sh = CARD_H[CARD_L];
+  const int16_t sw = CARD_SRC_W, sh = CARD_SRC_H;
   const int16_t x0 = (int16_t)(cx - w / 2);
   int16_t r = (int16_t)(w / 22);
   if (r < 3) r = 3;

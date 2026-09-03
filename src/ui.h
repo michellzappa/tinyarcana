@@ -1,10 +1,11 @@
 // Screens. Every function paints a whole frame into gfx; main.cpp flushes.
-// Geometry is per board: the round 466 face and the 368x448 portrait.
+// Geometry targets the 466px round face.
 #pragma once
 
 #include <Arduino.h>
 
 #include "tarot_engine.h"
+#include "settings.h"
 
 static const uint16_t COL_BG = 0x0000;         // true black: OLED pixels off
 static const uint16_t COL_GOLD = 0xD58C;       // RGB(214,176,96)
@@ -15,6 +16,7 @@ static const uint16_t COL_RULE = 0x3167;       // RGB(50,44,60)
 
 struct Spread {
   Reading reading;
+  uint8_t deck;
   bool revealed[3];
 };
 
@@ -33,7 +35,9 @@ static const int16_t DECK_CX = 184, DECK_Y = 118, DECK_W = 150, DECK_H = 264;
 
 void uiBoot(uint32_t ageMs, bool fsOk, bool touchOk);
 void uiDeck(uint32_t nowMs, bool holding, float progress);
+void uiMenu(uint8_t selected);
 void uiHelp();
+void uiSettings(const AppSettings &settings, uint8_t selected);
 void uiCut(float p);
 void uiDeal(float p);
 // The reverse: the three cards fly back into the stack, face down.
@@ -50,4 +54,6 @@ uint8_t uiInnerPrepare(char *text);
 void uiInner(const Spread &s, uint8_t page, uint8_t pages);
 
 bool uiDeckHit(int16_t x, int16_t y);
+int8_t uiMenuHit(int16_t x, int16_t y);
+int8_t uiSettingsHit(int16_t x, int16_t y);
 int8_t uiSlotHit(int16_t x, int16_t y);

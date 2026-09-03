@@ -3,9 +3,7 @@
 // filtered noise with envelopes, so the whole design lives in audio.cpp.
 //
 // The codec takes its master clock from the bit clock, so no MCLK pin is
-// driven. That pin is the one that differs between the 1.75 and 1.75C
-// boards; BCLK, WS, DOUT and the amplifier enable are the same on both and
-// on the 1.8.
+// driven. The round board's codec is clocked from BCLK.
 #pragma once
 
 #include <Arduino.h>

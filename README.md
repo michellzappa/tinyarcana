@@ -1,10 +1,9 @@
 # tinyarcana
 
 A tarot reader for the [Waveshare ESP32-S3-Touch-AMOLED-1.75](https://docs.waveshare.com/ESP32-S3-Touch-AMOLED-1.75)
-round display (466x466), with the 1.8" portrait board as a second target.
-Twenty-two majors, a past / present / future spread, and an inner reading
-that composes what the three cards say to each other. Offline. No account,
-no API, no cloud.
+round display (466x466). It ships with the twenty-two Major Arcana, a past /
+present / future spread, and an inner reading that composes what the three
+cards say to each other. Offline. No account, no API, no cloud.
 
 ## The reading
 
@@ -20,6 +19,15 @@ no API, no cloud.
    Judgement. The glyphs are drawn from stroke tables (`src/glyphs.cpp`), so
    no symbol font is embedded.
 6. **Go inside.** PWR opens the inner reading.
+
+From the deck screen, PWR opens the menu. Settings persist across boots and
+currently cover the active deck, brightness, sound level, and the underlying
+card line. Rider-Waite-Smith is the first and default deck; the firmware is
+structured for additional 22-card Major-only decks.
+
+In the menu, BOOT moves between items and PWR opens one. In Settings, BOOT
+moves between rows, PWR changes the selected value, and tapping the bottom
+edge returns to the menu.
 
 Every step has a sound: a bell on boot, a low drone that rises in pitch and
 brightness while your hand is on the deck, a breath when the deck cuts, a
@@ -39,7 +47,7 @@ Not a lookup. `src/tarot_engine.cpp` builds the reading from the spread:
 | The hidden card | The quintessence: the three numbers summed and digit-reduced to a major, doubled in weight if it is already on the table |
 | The question | The Future card's closing question |
 
-1540 possible spreads, no two read the same.
+9240 ordered spreads, no two read the same.
 
 ## Controls
 
@@ -48,7 +56,7 @@ Not a lookup. `src/tarot_engine.cpp` builds the reading from the spread:
 | **Touch** | hold to shuffle | tap to turn / open a card | tap: card to meaning, meaning to spread; swipe between cards | tap for next page |
 | **BOOT** | quick draw (no shuffle) | turn next card, then open | next card | next page |
 | **BOOT + PWR** or **BOOT hold** | | close the reading | close the reading | close the reading |
-| **PWR** | help | inner reading (turns remaining cards first) | inner reading | back to spread |
+| **PWR** | menu | inner reading (turns remaining cards first) | inner reading | back to spread |
 | **PWR hold ~6 s** | power off (hardware) | | | |
 
 ## Build and flash
@@ -61,15 +69,16 @@ python3 -m venv .venv && .venv/bin/pip install pillow && .venv/bin/python script
 ```
 
 ```sh
-pio run -e amoled-175-round -t uploadfs
+pio run -t uploadfs
 ```
 
 ```sh
-pio run -e amoled-175-round -t upload
+pio run -t upload
 ```
 
-For the 1.8" board use `-e amoled-18`. Each env has its own `data/<env>`
-payload because the card bitmaps are sized per screen.
+The round board stores one 168x295 RGB565 bitmap per card and samples it for
+both the spread and full-card views. The shared source size avoids duplicating
+every image and leaves room for about five Major-only decks in LittleFS.
 
 If upload fails with the port busy, Headroom's LaunchAgent owns it. See
 [AGENTS.md](AGENTS.md).
@@ -79,6 +88,8 @@ If upload fails with the port busy, Headroom's LaunchAgent owns it. See
 ```
 src/
   main.cpp          screen state machine
+  deck.*            deck registry and stable deck/card access
+  settings.*        persistent NVS settings
   ui.*              every screen, all painted into one PSRAM frame
   tarot_data.h      22 cards: keywords, essence, per-position meanings, questions
   tarot_engine.*    inner reading composer
@@ -87,14 +98,28 @@ src/
   entropy.*         hardware RNG + touch stirring
   audio.*           additive synth over I2S into the ES8311
   es8311.*          codec driver (Espressif, Apache-2.0)
-  board_display.*   CO5300 (round) or AXP2101 -> TCA9554 -> SH8601 (1.8)
-  board_input.*     BOOT, PWR, CST9217 (round) or FT3168 (1.8) touch
+  board_display.*   CO5300 round panel and AXP2101
+  board_input.*     BOOT, PWR and CST9217 touch
   fonts/            generated glyph tables
 assets/cards/             Rider-Waite-Smith majors (public domain)
+assets/decks/             additional Major-only deck asset instructions
 assets/fonts/             Lora (SIL OFL)
 scripts/build_assets.py   cards + fonts
 data/<env>/               generated LittleFS payload (gitignored)
 ```
+
+### Tarot artwork and fair use
+
+The included Rider-Waite-Smith artwork is identified as public domain in
+[LICENSE](LICENSE). Any additional Thoth, Marseille, or other deck artwork
+must be reviewed separately: a particular scan, edition, restoration, or
+digital redraw may still be protected. Where an additional deck is included
+for private prototyping, criticism, scholarship, or comparison, its use is
+intended to rely only on a fair-use/fair-dealing rationale where that doctrine
+applies. Fair use is jurisdiction-specific and is not blanket permission to
+redistribute commercial deck artwork. Confirm the applicable rights and add
+the appropriate credit or permission before distributing a build containing
+additional decks.
 
 ## Licence
 

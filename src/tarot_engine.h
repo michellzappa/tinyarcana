@@ -9,12 +9,15 @@
 
 #include <Arduino.h>
 
+#include "deck.h"
+
 struct Reading {
   uint8_t card[3];   // Past, Present, Future
 };
 
 // Quintessence: sum of the three, digit-reduced until it names a major.
-uint8_t tarotHiddenCard(const Reading &r);
+uint8_t tarotHiddenCard(const DeckDefinition &deck, const Reading &r);
 
 // Writes paragraphs separated by '\n'. '#' heading, '>' italic. Returns length.
-size_t tarotCompose(const Reading &r, char *buf, size_t n);
+size_t tarotCompose(const DeckDefinition &deck, const Reading &r, char *buf,
+                    size_t n);

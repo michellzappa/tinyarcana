@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "tarot_data.h"
+#include "deck.h"
 #include "tarot_engine.h"
 
 static const size_t BUF = 2600;  // == sizeof innerText in main.cpp
@@ -40,26 +41,30 @@ int main() {
   long spreads = 0, truncated = 0;
   size_t longest = 0;
 
-  for (int a = 0; a < 22; ++a)
-    for (int b = 0; b < 22; ++b) {
+  for (int a = 0; a < MAJOR_COUNT; ++a)
+    for (int b = 0; b < MAJOR_COUNT; ++b) {
       if (b == a) continue;
-      for (int c = 0; c < 22; ++c) {
+      for (int c = 0; c < MAJOR_COUNT; ++c) {
         if (c == a || c == b) continue;
 
         Reading r{{(uint8_t)a, (uint8_t)b, (uint8_t)c}};
-        const uint8_t hidden = tarotHiddenCard(r);
-        const size_t len = tarotCompose(r, buf, sizeof buf);
+        const DeckDefinition &deck = deckById(0);
+        const uint8_t hidden = tarotHiddenCard(deck, r);
+        const size_t len = tarotCompose(deck, r, buf, sizeof buf);
 
         if (len > longest) longest = len;
         if (len >= sizeof buf - 1) ++truncated;
 
         printf("{\"past\":%d,\"present\":%d,\"future\":%d,", a, b, c);
         printf("\"past_name\":\"%s\",\"present_name\":\"%s\",\"future_name\":\"%s\",",
-               CARDS[a].name, CARDS[b].name, CARDS[c].name);
-        printf("\"hidden\":%d,\"hidden_name\":\"%s\",", hidden, CARDS[hidden].name);
+               deckCard(deck, a).name, deckCard(deck, b).name,
+               deckCard(deck, c).name);
+        printf("\"hidden\":%d,\"hidden_name\":\"%s\",", hidden,
+               deckCard(deck, hidden).name);
         printf("\"elements\":[\"%s\",\"%s\",\"%s\"],",
-               ELEMENT_NAME[CARDS[a].element], ELEMENT_NAME[CARDS[b].element],
-               ELEMENT_NAME[CARDS[c].element]);
+               ELEMENT_NAME[deckCard(deck, a).element],
+               ELEMENT_NAME[deckCard(deck, b).element],
+               ELEMENT_NAME[deckCard(deck, c).element]);
         printf("\"len\":%zu,\"text\":\"", len);
         jsonEscape(buf);
         printf("\"}\n");

@@ -12,7 +12,7 @@ are then sent once instead of once per variant, and the model can make the
 variants deliberately unlike each other, which single-variant requests cannot.
 
 `collect` is where the gates run. A reading is kept only if it is 45-55 words,
-lays out on one page on both boards, and shares no 8-gram with the source
+lays out on one page on the round board, and shares no 8-gram with the source
 books. Rejects are written alongside with the reason, so a bad STYLE block
 shows up as a pattern rather than a silent shortfall.
 

@@ -163,7 +163,6 @@ static const CardInfo CARDS[22] = {
    "What would it mean to be finished, and what would you start next?"},
 };
 
-static inline const char *cardPositionText(uint8_t idx, uint8_t pos) {
-  const CardInfo &c = CARDS[idx];
+static inline const char *cardPositionText(const CardInfo &c, uint8_t pos) {
   return pos == 0 ? c.past : pos == 1 ? c.present : c.future;
 }

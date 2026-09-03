@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Build the firmware's binary assets.
 
-Cards:  assets/cards/NN.webp (1480x2600 Rider-Waite-Smith majors)
-        -> data/<env>/cards/NN_WxH.565 for each size that env uses
+Cards:  assets/cards/NN.webp (Rider-Waite-Smith majors), or
+        assets/decks/<id>/NN.webp for additional decks
+        -> data/<env>/decks/<id>/NN_168x295.565
         Raw RGB565, little-endian uint16, row-major, no header. The firmware
         blits these straight into its PSRAM framebuffer.
 
@@ -23,16 +24,29 @@ import sys
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CARD_SRC = os.path.join(ROOT, "assets", "cards")
+CARD_SRC = os.path.join(ROOT, "assets", "cards")  # default RWS source
+EXTRA_DECKS_DIR = os.path.join(ROOT, "assets", "decks")
 DATA_DIR = os.path.join(ROOT, "data")
 FONT_OUT = os.path.join(ROOT, "src", "fonts")
 FONT_DIR = os.path.join(ROOT, "assets", "fonts")
 
-# Per PlatformIO env: (spread size, full-screen size). Must match cards.h.
-CARD_SIZES = {
-    "amoled-175-round": [(120, 211), (224, 394)],
-    "amoled-18": [(104, 183), (250, 440)],
-}
+# One stored bitmap is sampled for both views. Keeping only this source size
+# makes five Major-only decks fit in the round board's enlarged filesystem.
+DECK_SIZE = (168, 295)
+MAX_DECKS = 5
+
+
+def deck_sources():
+    """Return RWS first, followed by any added deck asset directories."""
+    sources = {"rws": CARD_SRC}
+    if os.path.isdir(EXTRA_DECKS_DIR):
+        for deck_id in sorted(os.listdir(EXTRA_DECKS_DIR)):
+            source = os.path.join(EXTRA_DECKS_DIR, deck_id)
+            if os.path.isdir(source) and not deck_id.startswith("."):
+                sources[deck_id] = source
+    if len(sources) > MAX_DECKS:
+        raise SystemExit("at most %d installed decks fit this image budget" % MAX_DECKS)
+    return sources
 
 # name, file, pixel size, variation weight (None = default instance)
 FONTS = [
@@ -56,28 +70,29 @@ def rgb565(r, g, b):
     return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
 
 
-def build_cards(env, sizes):
-    out_dir = os.path.join(DATA_DIR, env, "cards")
+def build_cards(env, deck_id, source_dir):
+    out_dir = os.path.join(DATA_DIR, env, "decks", deck_id)
     os.makedirs(out_dir, exist_ok=True)
     total = 0
     for n in range(22):
-        src = os.path.join(CARD_SRC, "%02d.webp" % n)
+        src = os.path.join(source_dir, "%02d.webp" % n)
         im = Image.open(src).convert("RGB")
-        for (w, h) in sizes:
-            small = im.resize((w, h), Image.LANCZOS)
-            px = small.load()
-            out = bytearray(w * h * 2)
-            i = 0
-            for y in range(h):
-                for x in range(w):
-                    r, g, b = px[x, y]
-                    struct.pack_into("<H", out, i, rgb565(r, g, b))
-                    i += 2
-            path = os.path.join(out_dir, "%02d_%dx%d.565" % (n, w, h))
-            with open(path, "wb") as f:
-                f.write(out)
-            total += len(out)
-    print("cards: %s 22 x %s -> %s (%d KB)" % (env, sizes, os.path.relpath(out_dir, ROOT), total // 1024))
+        w, h = DECK_SIZE
+        small = im.resize((w, h), Image.LANCZOS)
+        px = small.load()
+        out = bytearray(w * h * 2)
+        i = 0
+        for y in range(h):
+            for x in range(w):
+                r, g, b = px[x, y]
+                struct.pack_into("<H", out, i, rgb565(r, g, b))
+                i += 2
+        path = os.path.join(out_dir, "%02d_%dx%d.565" % (n, w, h))
+        with open(path, "wb") as f:
+            f.write(out)
+        total += len(out)
+    print("cards: %s/%s 22 x %s -> %s (%d KB)" %
+          (env, deck_id, DECK_SIZE, os.path.relpath(out_dir, ROOT), total // 1024))
 
 
 def load_font(file, size, weight):
@@ -132,8 +147,9 @@ def build_font(name, file, size, weight):
 def main():
     what = sys.argv[1:] or ["cards", "fonts"]
     if "cards" in what:
-        for env, sizes in CARD_SIZES.items():
-            build_cards(env, sizes)
+        for env in ("amoled-175-round",):
+            for deck_id, source_dir in deck_sources().items():
+                build_cards(env, deck_id, source_dir)
     if "fonts" in what:
         os.makedirs(FONT_OUT, exist_ok=True)
         for spec in FONTS:

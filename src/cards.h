@@ -1,24 +1,26 @@
-// Card bitmaps from LittleFS (data/<env>/cards/NN_WxH.565), cached in PSRAM,
-// blitted with rounded corners and an optional horizontal squash for flips.
+// Card bitmaps from LittleFS (data/<env>/decks/<id>/NN_168x295.565), cached
+// in PSRAM, blitted with rounded corners and scaled for both UI sizes.
 #pragma once
 
 #include <Arduino.h>
 
+#include "deck.h"
+
 // S: the three-card spread. L: one card, as large as the glass allows.
 enum CardSize : uint8_t { CARD_S = 0, CARD_L = 1 };
 
-// Must match scripts/build_assets.py CARD_SIZES for the env.
-#if defined(BOARD_ROUND_175)
+// Drawing sizes. The source bitmap is one smaller shared size so five decks
+// can coexist in flash; cards.cpp samples it for both views.
 // L is the largest 0.569 rectangle inside the 233 px circle, less a margin.
 static const int16_t CARD_W[2] = {120, 224};
 static const int16_t CARD_H[2] = {211, 394};
-#else
-static const int16_t CARD_W[2] = {104, 250};
-static const int16_t CARD_H[2] = {183, 440};
-#endif
+
+static const int16_t CARD_SRC_W = 168;
+static const int16_t CARD_SRC_H = 295;
 
 bool cardsBegin();
 bool cardsReady();
+bool cardsSelectDeck(const DeckDefinition &deck);
 const uint16_t *cardBitmap(uint8_t idx, CardSize sz);
 void cardPreload(uint8_t idx);
 

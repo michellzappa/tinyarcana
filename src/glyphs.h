@@ -15,7 +15,5 @@ enum Glyph : uint8_t {
   G_COUNT
 };
 
-extern const Glyph CARD_GLYPH[22];
-
 // Draw centred on (cx, cy) inside a size x size box, stroke ~size/16.
 void glyphDraw(Glyph g, int16_t cx, int16_t cy, int16_t size, uint16_t col);

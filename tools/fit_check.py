@@ -8,7 +8,7 @@ round face (readWidthAt() in src/ui.cpp). Glyph advances are read from the
 generated font headers, so this stays correct when the fonts are rebuilt.
 
   python3 tools/fit_check.py reading.txt
-  python3 tools/fit_check.py --board 18 --max-pages 2 corpus/*.txt
+  python3 tools/fit_check.py --board round --max-pages 2 corpus/*.txt
   ... | python3 tools/fit_check.py --jsonl --field text --max-pages 2 -
 
 Exits non-zero if any input exceeds --max-pages, so it can gate a corpus.
@@ -74,11 +74,9 @@ def fit_line(font, s, max_w):
 
 
 BOARDS = {
-    # readWidthAt() plus the INNER_TOP/INNER_BOTTOM pair for each board.
+    # readWidthAt() plus the INNER_TOP/INNER_BOTTOM pair for the product board.
     "round": {"top": 110, "bottom": 388, "round": True, "r": 233, "cy": 233,
               "cx": 233, "edge": 52, "label": "1.75 round 466x466"},
-    "18":    {"top": 96,  "bottom": 404, "round": False, "w": 368 - 2 * 26,
-              "label": "1.8 portrait 368x448"},
 }
 LINE_H, GAP_H, HEAD_H = 24, 8, 24
 

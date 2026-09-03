@@ -8,7 +8,7 @@
 
 #include "pin_config.h"
 
-// Native orientation on both boards: logical == panel, no rotation on flush.
+// Logical coordinates are rotated onto the round panel during flush.
 static const int16_t SCR_W = LCD_WIDTH;
 static const int16_t SCR_H = LCD_HEIGHT;
 
@@ -33,4 +33,4 @@ bool boardDisplayBegin();
 void nativeToLogical(int16_t nx, int16_t ny, int16_t *lx, int16_t *ly);
 void boardSetBrightness(uint8_t b);
 bool i2cPresent(uint8_t addr);
-uint8_t tcaAddress();   // 1.8 only; 0 on boards without an expander
+uint8_t tcaAddress();   // compatibility stub; always 0 on the round board

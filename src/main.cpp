@@ -1,4 +1,4 @@
-// Tarot for two Waveshare AMOLEDs (round 1.75 by default, 1.8 portrait).
+// Tarot for the Waveshare ESP32-S3-Touch-AMOLED-1.75 round display.
 //
 //   boot -> deck -(hold, release)-> cut -> deal -> spread -(tap)-> card -(tap)-> meaning
 //                                                   |                            |
@@ -12,7 +12,9 @@
 #include "board_display.h"
 #include "board_input.h"
 #include "cards.h"
+#include "deck.h"
 #include "entropy.h"
+#include "settings.h"
 #include "tarot_data.h"
 #include "tarot_engine.h"
 #include "ui.h"
@@ -20,7 +22,9 @@
 enum Screen : uint8_t {
   SCR_BOOT = 0,
   SCR_DECK,
+  SCR_MENU,
   SCR_HELP,
+  SCR_SETTINGS,
   SCR_CUT,
   SCR_DEAL,
   SCR_GATHER,    // cards return to the deck
@@ -50,6 +54,8 @@ static uint8_t cardPos = 0;
 static uint8_t innerPage = 0, innerPages = 1;
 static bool innerReady = false;
 static char innerText[2600];
+static uint8_t menuCursor = 0;
+static uint8_t settingsCursor = 0;
 static uint8_t dealt = 0;
 static bool holding = false;
 static uint32_t holdStart = 0;
@@ -60,12 +66,17 @@ static void go(Screen s) {
 }
 
 static void newReading() {
-  entropyDraw(spread.reading.card, 3, 22);
+  spread.deck = appSettings.deckId;
+  const DeckDefinition &deck = deckById(spread.deck);
+  cardsSelectDeck(deck);
+  entropyDraw(spread.reading.card, 3, deck.cardCount);
   for (uint8_t i = 0; i < 3; i++) spread.revealed[i] = false;
   innerReady = false;
   Serial.printf("draw: %s / %s / %s  (stirs=%lu)\n",
-                CARDS[spread.reading.card[0]].name, CARDS[spread.reading.card[1]].name,
-                CARDS[spread.reading.card[2]].name, (unsigned long)entropyStirs());
+                deckCard(deck, spread.reading.card[0]).name,
+                deckCard(deck, spread.reading.card[1]).name,
+                deckCard(deck, spread.reading.card[2]).name,
+                (unsigned long)entropyStirs());
   for (uint8_t i = 0; i < 3; i++) cardPreload(spread.reading.card[i]);
 }
 
@@ -99,7 +110,8 @@ static void backToSpread() {
 
 static void openInner() {
   if (!innerReady) {
-    tarotCompose(spread.reading, innerText, sizeof innerText);
+    tarotCompose(deckById(spread.deck), spread.reading, innerText,
+                 sizeof innerText);
     innerPages = uiInnerPrepare(innerText);
     innerReady = true;
   }
@@ -114,16 +126,53 @@ static void startCut() {
   go(SCR_CUT);
 }
 
+static void adjustSetting() {
+  switch (settingsCursor) {
+  case 0:
+    appSettings.deckId = (uint8_t)((appSettings.deckId + 1) % DECK_COUNT);
+    cardsSelectDeck(deckById(appSettings.deckId));
+    break;
+  case 1:
+    if (appSettings.brightness < 64) appSettings.brightness = 64;
+    else if (appSettings.brightness < 128) appSettings.brightness = 128;
+    else if (appSettings.brightness < 192) appSettings.brightness = 192;
+    else if (appSettings.brightness < 255) appSettings.brightness = 255;
+    else appSettings.brightness = 64;
+    break;
+  case 2:
+    appSettings.volume = appSettings.volume >= 100
+                             ? 0
+                             : (uint8_t)(appSettings.volume + 20);
+    break;
+  case 3:
+    appSettings.showHiddenCard = !appSettings.showHiddenCard;
+    break;
+  }
+  settingsSave();
+  settingsApplyHardware();
+}
+
+static void openMenuItem(uint8_t item) {
+  if (item == 0) go(SCR_HELP);
+  else {
+    settingsCursor = 0;
+    go(SCR_SETTINGS);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   delay(300);
   Serial.println("\n=== tarot ===");
+  settingsBegin();
   entropyBegin();
   if (!boardDisplayBegin()) Serial.println("display init failed");
   boardInputBegin();
   touchOk = boardTouchPresent();
   audioOk = audioBegin();
+  settingsApplyHardware();
   fsOk = cardsBegin();
+  if (fsOk) fsOk = cardsSelectDeck(deckById(appSettings.deckId));
   gfx->clear(COL_BG);
   gfx->flush();
   audioPlay(SND_BOOT);
@@ -185,15 +234,54 @@ void loop() {
       progress = 0;
     }
     uiDeck(now, holding && in.touchDown, progress);
-    if (in.bPressed) { audioPlay(SND_PAGE); go(SCR_HELP); }
+    if (in.bPressed) { audioPlay(SND_PAGE); menuCursor = 0; go(SCR_MENU); }
     // BOOT on the deck: a quick draw for the impatient (hardware noise only).
     if (in.aPressed) startCut();
     break;
   }
 
+  case SCR_MENU:
+    uiMenu(menuCursor);
+    if (in.tap) {
+      const int8_t item = uiMenuHit(in.x, in.y);
+      if (item >= 0) { menuCursor = (uint8_t)item; openMenuItem(menuCursor); }
+      else { audioPlay(SND_BACK); go(SCR_DECK); }
+    } else if (in.aPressed) {
+      menuCursor = (uint8_t)((menuCursor + 1) % 2);
+      audioPlay(SND_PAGE);
+    } else if (in.bPressed) {
+      openMenuItem(menuCursor);
+    } else if (in.aLong) {
+      audioPlay(SND_BACK);
+      go(SCR_DECK);
+    }
+    break;
+
   case SCR_HELP:
     uiHelp();
-    if (in.tap || in.aPressed || in.bPressed) { audioPlay(SND_BACK); go(SCR_DECK); }
+    if (in.tap || in.aPressed || in.bPressed) { audioPlay(SND_BACK); go(SCR_MENU); }
+    break;
+
+  case SCR_SETTINGS:
+    uiSettings(appSettings, settingsCursor);
+    if (in.tap) {
+      const int8_t item = uiSettingsHit(in.x, in.y);
+      if (item >= 0) {
+        settingsCursor = (uint8_t)item;
+        adjustSetting();
+      } else {
+        audioPlay(SND_BACK);
+        go(SCR_MENU);
+      }
+    } else if (in.aPressed) {
+      settingsCursor = (uint8_t)((settingsCursor + 1) % 4);
+      audioPlay(SND_PAGE);
+    } else if (in.bPressed) {
+      adjustSetting();
+    } else if (in.aLong) {
+      audioPlay(SND_BACK);
+      go(SCR_MENU);
+    }
     break;
 
   case SCR_CUT:

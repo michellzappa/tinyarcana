@@ -73,31 +73,6 @@ static const Stroke STROKES[] = {
 };
 // GLYPH_TABLE_END
 
-const Glyph CARD_GLYPH[22] = {
-  G_AIR,        // 0  Fool
-  G_MERCURY,    // 1  Magician
-  G_MOON,       // 2  High Priestess
-  G_VENUS,      // 3  Empress
-  G_ARIES,      // 4  Emperor
-  G_TAURUS,     // 5  Hierophant
-  G_GEMINI,     // 6  Lovers
-  G_CANCER,     // 7  Chariot
-  G_LEO,        // 8  Strength
-  G_VIRGO,      // 9  Hermit
-  G_JUPITER,    // 10 Wheel of Fortune
-  G_LIBRA,      // 11 Justice
-  G_WATER,      // 12 Hanged Man
-  G_SCORPIO,    // 13 Death
-  G_SAGITTARIUS,// 14 Temperance
-  G_CAPRICORN,  // 15 Devil
-  G_MARS,       // 16 Tower
-  G_AQUARIUS,   // 17 Star
-  G_PISCES,     // 18 Moon
-  G_SUN,        // 19 Sun
-  G_FIRE,       // 20 Judgement
-  G_SATURN,     // 21 World
-};
-
 static const Stroke *glyphStart(Glyph g) {
   const Stroke *s = STROKES;
   for (uint8_t i = 0; i < g; i++) {

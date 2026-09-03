@@ -1,6 +1,5 @@
-// Panel bring-up per board, copied from firmware proven on each SKU.
-//   round 1.75: esp32-lofiair board_display.cpp (LOFIAIR_AMOLED_175C)
-//   1.8:        headroom/firmware and esp32-rhythm board_display.cpp
+// Round-panel bring-up copied from firmware proven on the exact board:
+// esp32-lofiair's LOFIAIR_AMOLED_175C profile.
 #include "board_display.h"
 
 #include <Wire.h>

@@ -5,6 +5,7 @@
 
 #include "board_display.h"
 #include "cards.h"
+#include "deck.h"
 #include "entropy.h"
 #include "glyphs.h"
 #include "tarot_data.h"
@@ -285,6 +286,19 @@ void uiDeck(uint32_t nowMs, bool holding, float progress) {
   }
 }
 
+// ---------------- Menu ----------------
+void uiMenu(uint8_t selected) {
+  gfx->clear(COL_BG);
+  txtCenter(lora_head, "Menu", CX, HEAD_Y, COL_IVORY);
+  rule(HEAD_Y + 14, COL_GOLD_DIM);
+  const char *items[] = {"HOW TO READ", "SETTINGS"};
+  for (uint8_t i = 0; i < 2; i++) {
+    const uint16_t col = i == selected ? COL_GOLD : COL_IVORY;
+    txtCenter(lora_label, items[i], CX, (int16_t)(190 + i * 58), col, 3);
+  }
+  hint("TAP OUTSIDE: BACK", "BOOT: NEXT   PWR: OPEN");
+}
+
 void uiHelp() {
   gfx->clear(COL_BG);
   txtCenter(lora_head, "How to read", CX, HEAD_Y, COL_IVORY);
@@ -302,6 +316,37 @@ void uiHelp() {
     y = (int16_t)(y + 9);
   }
   hint("TAP TO GO BACK");
+}
+
+// ---------------- Settings ----------------
+void uiSettings(const AppSettings &settings, uint8_t selected) {
+  gfx->clear(COL_BG);
+  txtCenter(lora_head, "Settings", CX, HEAD_Y, COL_IVORY);
+  rule(HEAD_Y + 14, COL_GOLD_DIM);
+
+  const char *labels[] = {"DECK", "BRIGHTNESS", "SOUND", "BENEATH THE SPREAD"};
+  char value[48];
+  for (uint8_t i = 0; i < 4; i++) {
+    const int16_t y = (int16_t)(145 + i * 58);
+    const uint16_t col = i == selected ? COL_GOLD : COL_DIM;
+    txtCenter(lora_small, labels[i], CX, y, col, 2);
+    if (i == 0) {
+      snprintf(value, sizeof value, "%s", deckById(settings.deckId).name);
+    } else if (i == 1) {
+      snprintf(value, sizeof value, "%u%%",
+               (unsigned int)((settings.brightness * 100u + 127u) / 255u));
+    } else if (i == 2) {
+      if (settings.volume)
+        snprintf(value, sizeof value, "%u%%", settings.volume);
+      else
+        snprintf(value, sizeof value, "OFF");
+    } else {
+      snprintf(value, sizeof value, "%s", settings.showHiddenCard ? "ON" : "OFF");
+    }
+    txtCenter(lora_label, value, CX, (int16_t)(y + 23),
+              i == selected ? COL_IVORY : COL_DIM, 2);
+  }
+  hint("TAP BOTTOM: BACK", "BOOT: NEXT   PWR: CHANGE");
 }
 
 // ---------------- Cut and deal ----------------
@@ -398,15 +443,18 @@ static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t
       cardDrawBack(SLOT_CX[i], SLOT_Y, cardW, cardH, 1.0f, 0.15f);
     }
     if (s.revealed[i] && (int8_t)i != flipping) {
-      txtWrapped(lora_small, CARDS[idx].name, (int16_t)(SLOT_CX[i] - cardW / 2 - 2),
+      const DeckDefinition &deck = deckById(s.deck);
+      txtWrapped(lora_small, deckCard(deck, idx).name,
+                 (int16_t)(SLOT_CX[i] - cardW / 2 - 2),
                  (int16_t)(SLOT_Y + cardH + 21), (int16_t)(cardW + 4), 16, COL_IVORY, 2, true);
     }
   }
 
-  if (n == 3) {
-    const uint8_t h = tarotHiddenCard(s.reading);
+  if (n == 3 && appSettings.showHiddenCard) {
+    const DeckDefinition &deck = deckById(s.deck);
+    const uint8_t h = tarotHiddenCard(deck, s.reading);
     char buf[64];
-    snprintf(buf, sizeof buf, "Beneath them: %s", CARDS[h].name);
+    snprintf(buf, sizeof buf, "Beneath them: %s", deckCard(deck, h).name);
 #if UI_ROUND
     // 226 px at its longest ("Beneath them: The High Priestess"), so it needs
     // a chord of at least that: 384 gives 318.
@@ -416,6 +464,8 @@ static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t
     txtCenter(lora_italic, buf, CX, 380, COL_DIM);
     hint("TAP A CARD TO READ IT");
 #endif
+  } else if (n == 3) {
+    hint("TAP A CARD TO READ IT", "PWR: INNER   BOOT+PWR: CLOSE");
   } else {
     hint("TAP A CARD TO TURN IT");
   }
@@ -439,7 +489,8 @@ void uiCardBig(const Spread &s, uint8_t pos) {
 void uiMeaning(const Spread &s, uint8_t pos) {
   gfx->clear(COL_BG);
   const uint8_t idx = s.reading.card[pos];
-  const CardInfo &c = CARDS[idx];
+  const DeckDefinition &deck = deckById(s.deck);
+  const CardInfo &c = deckCard(deck, idx);
   char label[24];
   upper(label, sizeof label, POSITION_NAME[pos]);
 #if UI_ROUND
@@ -452,7 +503,7 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   txtCenter(lora_name, c.name, CX, nameY, COL_IVORY);
   txtCenter(lora_keys, c.keywords, CX, keysY, COL_DIM);
   rule(ruleY, COL_GOLD_DIM);
-  const int16_t after = txtWrappedFn(lora_meaning, cardPositionText(idx, pos), meaningWidthAt, bodyY, lineH, COL_IVORY, 6);
+  const int16_t after = txtWrappedFn(lora_meaning, cardPositionText(c, pos), meaningWidthAt, bodyY, lineH, COL_IVORY, 6);
 
   // The card's Golden Dawn glyph, with numeral, attribution and element,
   // hung a fixed distance under the last line so the page reads as one block.
@@ -460,7 +511,7 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   int16_t glyphY = (int16_t)(after - lineH + 50);
   const int16_t glyphMaxY = DOTS_Y - 56;
   if (glyphY > glyphMaxY) glyphY = glyphMaxY;
-  glyphDraw(CARD_GLYPH[idx], CX, glyphY, 46, COL_GOLD);
+  if (deck.glyphs) glyphDraw(deck.glyphs[idx], CX, glyphY, 46, COL_GOLD);
   char cap[48];
   char ruler[16], el[12];
   upper(ruler, sizeof ruler, c.ruler);
@@ -493,6 +544,7 @@ uint8_t uiInnerPrepare(char *text) {
 
 void uiInner(const Spread &s, uint8_t page, uint8_t pages) {
   gfx->clear(COL_BG);
+  const DeckDefinition &deck = deckById(s.deck);
 #if UI_ROUND
   const int16_t headY = 56, subY = 76, ruleY = 88;
 #else
@@ -500,12 +552,16 @@ void uiInner(const Spread &s, uint8_t page, uint8_t pages) {
 #endif
   txtCenter(lora_head, "The inner reading", CX, headY, COL_IVORY);
   char sub[96];
-  snprintf(sub, sizeof sub, "%s  /  %s  /  %s", CARDS[s.reading.card[0]].name,
-           CARDS[s.reading.card[1]].name, CARDS[s.reading.card[2]].name);
+  snprintf(sub, sizeof sub, "%s  /  %s  /  %s",
+           deckCard(deck, s.reading.card[0]).name,
+           deckCard(deck, s.reading.card[1]).name,
+           deckCard(deck, s.reading.card[2]).name);
   int16_t x0 = 0;
   if (txtWidth(lora_small, sub) > widthAt(subY, &x0))
-    snprintf(sub, sizeof sub, "%s / %s / %s", CARDS[s.reading.card[0]].numeral,
-             CARDS[s.reading.card[1]].numeral, CARDS[s.reading.card[2]].numeral);
+    snprintf(sub, sizeof sub, "%s / %s / %s",
+             deckCard(deck, s.reading.card[0]).numeral,
+             deckCard(deck, s.reading.card[1]).numeral,
+             deckCard(deck, s.reading.card[2]).numeral);
   txtCenter(lora_small, sub, CX, subY, COL_DIM);
   rule(ruleY, COL_GOLD_DIM);
 
@@ -531,6 +587,22 @@ void uiInner(const Spread &s, uint8_t page, uint8_t pages) {
 bool uiDeckHit(int16_t x, int16_t y) {
   return x >= DECK_CX - DECK_W / 2 - 20 && x <= DECK_CX + DECK_W / 2 + 20 &&
          y >= DECK_Y - 20 && y <= DECK_Y + DECK_H + 20;
+}
+
+int8_t uiMenuHit(int16_t x, int16_t y) {
+  if (x < 50 || x > SCR_W - 50) return -1;
+  if (y >= 155 && y < 220) return 0;
+  if (y >= 220 && y < 285) return 1;
+  return -1;
+}
+
+int8_t uiSettingsHit(int16_t x, int16_t y) {
+  if (x < 30 || x > SCR_W - 30) return -1;
+  for (int8_t i = 0; i < 4; i++) {
+    const int16_t top = (int16_t)(112 + i * 58);
+    if (y >= top && y < top + 58) return i;
+  }
+  return -1;
 }
 
 int8_t uiSlotHit(int16_t x, int16_t y) {

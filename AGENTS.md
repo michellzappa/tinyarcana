@@ -2,13 +2,12 @@
 
 ## Which board
 
-Two SKUs, two PlatformIO envs. The round one is the product; the 1.8 was the
-first target and stays buildable.
+The round 1.75 is the only supported product target. The 1.8 was a pilot and
+is no longer built or maintained.
 
 | Env | Board | Panel | Touch | PWR key |
 | --- | --- | --- | --- | --- |
 | `amoled-175-round` (default) | Waveshare ESP32-S3-Touch-AMOLED-1.75 | 466x466 CO5300, col offset 6 | CST9217 @ 0x5A, both axes mirrored | AXP2101 PEKEY IRQ |
-| `amoled-18` | Waveshare ESP32-S3-Touch-AMOLED-1.8 | 368x448 SH8601 portrait | FT3168 @ 0x38 | TCA9554 EXIO4 |
 
 Read the MAC before every flash. Every Waveshare AMOLED on this desk looks
 identical over USB and takes a different pin map:
@@ -16,7 +15,6 @@ identical over USB and takes a different pin map:
 | Device | MAC | Env | Factory backup |
 | --- | --- | --- | --- |
 | AMOLED 1.75 round | `80:45:6b:33:d0:60` | `amoled-175-round` | `waveshare-175-round-...-factory.bin` |
-| AMOLED 1.8 | `1c:db:d4:7a:08:8c` | `amoled-18` | `waveshare-18-...-factory.bin` |
 
 Other identical boards on this desk belong to other projects and must not be
 flashed from here. `AGENTS.local.md` holds that inventory; it is not in the
@@ -41,9 +39,6 @@ from Waveshare's own examples. Two things there are easy to lose:
 - Both touch axes are mirrored (Waveshare's example: `setMirrorXY(true, true)`).
 - No AXP2101 rail is written on the round board; the vendor demos never do.
 
-1.8: from the sibling projects too. PWR is read through the
-TCA9554 input register (EXIO4); the AXP2101 still powers off on a ~6 s hold.
-
 ## The serial port has one owner
 
 Another KeepAlive LaunchAgent on this desk opens every `/dev/cu.usbmodem*`.
@@ -59,16 +54,18 @@ pio run -e amoled-175-round -t uploadfs && pio run -e amoled-175-round -t upload
 
 ## Assets are generated
 
-`data/cards/*.565` (gitignored) and `src/fonts/*.h` come from one script:
+`data/amoled-175-round/decks/<id>/*.565` (gitignored) and `src/fonts/*.h` come
+from one script:
 
 ```sh
 python3 -m venv .venv && .venv/bin/pip install pillow && .venv/bin/python scripts/build_assets.py
 ```
 
-Cards are the 22 RWS majors in `assets/cards`, resampled per env to the two
-sizes in `CARD_SIZES` (spread and full-screen) as `data/<env>/cards/NN_WxH.565`.
-`scripts/data_dir.py` points PlatformIO's data dir at `data/<env>`. Sizes
-must match `src/cards.h`; change both, re-run the script and `uploadfs`. The
+Cards are Major-only deck packs. RWS is sourced from `assets/cards`; future
+decks use `assets/decks/<id>`. Each card is resampled once to 168x295 as
+`data/<env>/decks/<id>/NN_168x295.565` and sampled for both display sizes.
+The size must match `src/cards.h`; change it, re-run the script and
+`uploadfs`. The
 fonts are Lora (SIL OFL) from `~/Library/Fonts`, rasterised to 8-bit alpha;
 the firmware blends them itself (`src/text.cpp`). Arduino_GFX's own text is
 not used anywhere.
@@ -78,9 +75,10 @@ iterations are `pio run -t upload` alone.
 
 ## Partition table
 
-`partitions.csv`: 4 MB app (single ota_0, huge_app style), 8 MB LittleFS at
-0x410000 labelled `spiffs` because that is the label Arduino's LittleFS mounts
-by default. The board has 16 MB; the rest is unused.
+`partitions.csv`: 4 MB app (single ota_0, huge_app style), about 11.9 MiB
+LittleFS at 0x410000 labelled `spiffs` because that is the label Arduino's
+LittleFS mounts by default, and a 64 KiB coredump at the end of flash. Five
+22-card packs at the shared 168x295 size fit within that filesystem.
 
 ## Randomness
 
@@ -96,16 +94,15 @@ If the ADC or Wi-Fi are ever added, disable it first.
 (`mclk_from_mclk_pin = false`), so **no MCLK pin is driven**. That is
 deliberate: MCLK is GPIO42 on the 1.75 and GPIO16 on the 1.75C, and this
 firmware does not know which unit it is on. BCLK 9, WS 45, DOUT 8 and
-PA_EN 46 are the same on both and on the 1.8.
+PA_EN 46 are fixed on the round board.
 The driver's coefficient table needs `rate * 32` to be a listed clock;
 22050 (705600 Hz) is. Changing the sample rate means checking that table.
 
 ## Text and layout
 
-Position meanings in `src/tarot_data.h` must fit five lines of `lora_body`
-at 340 px on the 1.8 (about 160 characters); the round detail column is
-narrower but eleven lines tall. Text on the round face is wrapped per line
-against the chord (`widthAt()` in `ui.cpp`), never a fixed width. The inner reading is paged by
+Position meanings in `src/tarot_data.h` must fit the round detail column.
+Text on the round face is wrapped per line against the chord (`widthAt()` in
+`ui.cpp`), never a fixed width. The inner reading is paged by
 `txtLayout()`; a paragraph starting with `#` is a heading, `>` italic, an
 empty line a gap. `tarotCompose()` writes into a 2600-byte buffer; if the
 engine grows, grow `innerText` in `main.cpp` and `INNER_MAX_LINES` in `ui.cpp`.
@@ -131,7 +128,7 @@ port ("Serial data stream stopped"). The default rate read all 16 MB in about
 compose, as JSON Lines:
 
 ```sh
-c++ -std=c++17 -O2 -I src -I tools/host_shim tools/dump_readings.cpp src/tarot_engine.cpp -o /tmp/dump_readings
+c++ -std=c++17 -O2 -I src -I tools/host_shim tools/dump_readings.cpp src/tarot_engine.cpp src/deck.cpp -o /tmp/dump_readings
 ```
 
 Neither file is in `src/`, so PlatformIO never sees them and the shim cannot
@@ -157,10 +154,9 @@ the corpus.
 
 ## Deck size is a flash decision
 
-The 22 majors at both render sizes cost 4.77 MB. All 78 cards at both sizes
-cost 16.90 MB, and the board has 16 MB of flash, so a full deck cannot ship
-as-is. If minors are ever added they get the spread size only (majors both
-plus minors spread-only is 7.47 MB). MZ chose majors on 2026-09-02.
+The round board stores one 168x295 bitmap per Major. One 22-card pack is about
+2.08 MiB; five packs are about 10.4 MiB, leaving filesystem headroom for
+metadata. Minor Arcana are out of scope.
 
 ## Reading length is a word budget, checked as lines
 
@@ -171,27 +167,26 @@ correct when the fonts are rebuilt.
 
 ```sh
 python3 tools/fit_check.py --max-pages 2 reading.txt
-python3 tools/fit_check.py --board 18 --jsonl --field text --max-pages 2 readings.jsonl
+python3 tools/fit_check.py --board round --jsonl --field text --max-pages 2 readings.jsonl
 ```
 
 Measured 2026-09-02 on the round board: a page of the inner reading holds
 **12 lines**, 31 to 39 characters each depending on where the line sits on the
-chord. The 1.8 holds 13 lines at a constant 316 px.
+chord.
 
 Every reading the engine composes today is **3 pages** (9238 of 9240; two are
 4). Written prose in the same register reaches 2 pages at the same word count,
 because the engine spends most of a page on its four headings.
 
 Write to a **word budget, not a line budget**. A generator cannot count rendered
-lines, and the two boards wrap the same text differently. Measured against
-prose in the reading register:
+lines reliably. Measured against prose in the reading register:
 
-| words | fits 2 pages, round | fits 2 pages, 1.8 |
-| --- | --- | --- |
-| 120 | 100% | 100% |
-| 130 | 91% | 100% |
-| 140 | 47% | 95% |
-| 150 | 7% | 64% |
+| words | fits 2 pages, round |
+| --- | --- |
+| 120 | 100% |
+| 130 | 91% |
+| 140 | 47% |
+| 150 | 7% |
 
 **Budget 110 to 125 words, cap 130.** The round board binds. Use `fit_check.py`
 as the gate that catches the outliers, never as the thing the writer aims at.
@@ -207,12 +202,12 @@ MZ chose one-page readings on 2026-09-02. A generated reading is **45 to 55
 words in a single paragraph**, plus the engine's italic closing question.
 Measured with `fit_check.py` against prose in the reading register:
 
-| words | one page, round | one page, 1.8 |
-| --- | --- | --- |
-| 40 | 100% | 100% |
-| 50 | 100% | 100% |
-| 60 | 96% | 98% |
-| 70 | 50% | 64% |
+| words | one page, round |
+| --- | --- |
+| 40 | 100% |
+| 50 | 100% |
+| 60 | 96% |
+| 70 | 50% |
 
 Those figures are for **one** paragraph. Two paragraphs cost a whole page: at
 50 words two paragraphs fit only 94% of the time, at 60 words only 53%. The
@@ -269,7 +264,7 @@ single-variant requests produce eight paraphrases.
 `<out>.rejects.jsonl` with a reason, so a bad prompt shows as a pattern:
 
 1. 45 to 55 words, one paragraph.
-2. One page on **both** boards, through `fit_check.py`.
+2. One page on the round board, through `fit_check.py`.
 3. No 8-gram shared with the extracted book text.
 
 Gate 3 protects against the model reproducing its source, which a model this
