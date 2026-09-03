@@ -150,15 +150,23 @@ void cardDrawBack(int16_t cx, int16_t y, int16_t w, int16_t h, float squash,
   const int32_t ringR = w / 5;
   const int16_t pitch = (int16_t)(w >= 120 ? 18 : 14);
 
+  // Two hoists worth having: this runs 39,600 times per card and three cards
+  // per frame on the deck screen. Unsquashed, the source column equals the
+  // destination column, so the per-pixel divide is pure waste; and the rounded
+  // corners can only reject a pixel within the corner radius of the top or
+  // bottom edge, so the rest of the rows need no test at all.
+  const bool noSquash = (dw == w);
+  const int16_t rr2 = rr < 2 ? 2 : rr;
   for (int16_t dy = 0; dy < h; dy++) {
     const int16_t py = (int16_t)(y + dy);
     if (py < 0 || py >= SCR_H) continue;
     uint16_t *row = fb + (int32_t)py * SCR_W;
+    const bool cornerRow = (dy < rr2) || (dy >= h - rr2);
     for (int16_t dx = 0; dx < dw; dx++) {
       const int16_t px = (int16_t)(x0 + dx);
       if (px < 0 || px >= SCR_W) continue;
-      if (!insideRounded(dx, dy, dw, h, rr < 2 ? 2 : rr)) continue;
-      const int16_t sx = (int16_t)((int32_t)dx * w / dw);
+      if (cornerRow && !insideRounded(dx, dy, dw, h, rr2)) continue;
+      const int16_t sx = noSquash ? dx : (int16_t)((int32_t)dx * w / dw);
       uint16_t c;
       if (sx < border || sx >= w - border || dy < border || dy >= h - border) {
         c = gold;

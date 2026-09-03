@@ -5,6 +5,7 @@
 
 #include "board_display.h"
 #include "cards.h"
+#include "entropy.h"
 #include "glyphs.h"
 #include "tarot_data.h"
 #include "text.h"
@@ -19,9 +20,8 @@ static const int16_t CY = SCR_H / 2;
 static const int16_t R = 233;
 static const int16_t EDGE = 22;
 static const int16_t HEAD_Y = 60;         // screen header baseline
-static const int16_t HINT_Y = 444;        // one-line hint baseline
-static const int16_t HINT2_Y = 426;       // second hint line, above it
-static const int16_t DOTS_Y = 408;
+static const int16_t HINT_Y = 404;        // one-line hint baseline
+static const int16_t DOTS_Y = 416;
 
 static int16_t chordHalf(int16_t y) {
   const int32_t dy = y - CY;
@@ -51,7 +51,6 @@ static const int16_t MARGIN = 14;
 static const int16_t CONTENT_W = SCR_W - 2 * MARGIN;   // 340
 static const int16_t HEAD_Y = 56;
 static const int16_t HINT_Y = 434;
-static const int16_t HINT2_Y = 434;
 static const int16_t DOTS_Y = 412;
 
 static int16_t widthAt(int16_t baseline, int16_t *xLeft) {
@@ -95,18 +94,26 @@ static void rule(int16_t y, uint16_t col) {
 }
 
 // One hint line, or two on the round face where a long one would meet the arc.
-static void hint(const char *a, const char *b = nullptr) {
+static void hint(const char *a, const char *b = nullptr, int16_t y = HINT_Y) {
 #if UI_ROUND
   if (b) {
-    txtCenter(lora_small, a, CX, HINT2_Y, COL_DIM, 1);
-    txtCenter(lora_small, b, CX, HINT_Y, COL_DIM, 1);
+    // The chord narrows towards the bottom of the glass, so the wider string
+    // takes the upper line. At the old 12 px and HINT_Y 444 the longest of
+    // these ran 219 px across a 172 px chord and the bezel ate the ends.
+    if (txtWidth(lora_label, a, -1, 1) < txtWidth(lora_label, b, -1, 1)) {
+      const char *t = a;
+      a = b;
+      b = t;
+    }
+    txtCenter(lora_label, a, CX, (int16_t)(y - 24), COL_GOLD_DIM, 1);
+    txtCenter(lora_label, b, CX, y, COL_GOLD_DIM, 1);
   } else {
-    txtCenter(lora_small, a, CX, HINT_Y, COL_DIM, 1);
+    txtCenter(lora_label, a, CX, y, COL_GOLD_DIM, 1);
   }
 #else
   char buf[96];
   if (b) snprintf(buf, sizeof buf, "%s   %s", a, b);
-  txtCenter(lora_small, b ? buf : a, CX, HINT_Y, COL_DIM);
+  txtCenter(lora_label, b ? buf : a, CX, y, COL_GOLD_DIM, 1);
 #endif
 }
 
@@ -126,64 +133,81 @@ static void upper(char *dst, size_t n, const char *s) {
 
 // ---------------- Boot ----------------
 
-// Twenty-two ticks around the rim, one per major, counted out clockwise from
-// twelve o'clock: the deck assembling itself before it can be dealt. Same
-// inscribed circle rimFill() uses, so it lands on the glass edge on the round
-// board and inside the largest circle that fits on the square one.
+// A wedge of the rim, drawn as a fan of short radial lines.
+//
+// fillArc() is the obvious call and the wrong one here: Arduino_GFX scans the
+// arc's bounding box, and for an arc at rim radius that box is the whole
+// screen. Twenty-one of them cost 190 ms a frame, which is most of why the
+// deck screen ran at 4 fps. This touches only the segment's own pixels, and
+// because it is trigonometry rather than an arc call it wraps past 360
+// degrees on its own with no seam to split.
+static void ringSeg(int16_t outer, int16_t inner, float a0, float a1, uint16_t col) {
+  static const float STEP = 0.25f;   // ~1 px of arc at rim radius
+  for (float ang = a0; ang <= a1; ang += STEP) {
+    const float rad = ang * 0.01745329f;
+    const float c = cosf(rad), sn = sinf(rad);
+    gfx->drawLine((int16_t)(CX + inner * c), (int16_t)(CY + inner * sn),
+                  (int16_t)(CX + outer * c), (int16_t)(CY + outer * sn), col);
+  }
+}
+
+// Twenty-one ticks around the rim, one per numbered trump, counted out
+// clockwise from twelve o'clock: the deck assembling itself before it can be
+// dealt. The Fool is unnumbered and stands outside the sequence, so he is the
+// dot already at the centre rather than a mark on the wheel. Same inscribed
+// circle rimFill() uses, pulled in clear of the bezel.
 static void bootTicks(float t) {
-  static const uint8_t N = 22;
-  static const float FIRST = 0.15f;   // first tick
-  static const float SPAN = 0.70f;    // last tick lands at FIRST + SPAN
-  static const float FADE = 0.10f;    // each tick fades in over this
-  const int16_t r = (SCR_W < SCR_H ? SCR_W : SCR_H) / 2 - 2;
+  static const uint8_t N = 21;
+  static const float FIRST = 0.12f;
+  static const float SPAN = 0.62f;
+  static const float HALF = 1.15f;    // half-width of each tick, degrees
+  // The boot screen runs at about 7 frames per second, so a per-tick fade is
+  // invisible: each frame advances roughly three ticks. They snap on instead.
+  const int16_t r = (int16_t)((SCR_W < SCR_H ? SCR_W : SCR_H) / 2 - 8);
   const int16_t inner = (int16_t)(r - 12);
   for (uint8_t i = 0; i < N; i++) {
-    const float due = FIRST + SPAN * ((float)i / (float)N);
-    if (t < due) break;               // ticks are in order, so stop at the first unlit
-    const float age = (t - due) / FADE;
-    const uint8_t a = (uint8_t)(255 * (age > 1 ? 1 : age));
-    const uint16_t col = blend565(COL_BG, COL_GOLD_DIM, a);
-    float mid = 270.0f + 360.0f * ((float)i / (float)N);
-    if (mid >= 360.0f) mid -= 360.0f;
-    float a0 = mid - 1.6f, a1 = mid + 1.6f;
-    // Arduino_GFX will not draw an arc across the 0/360 seam; split it.
-    if (a0 < 0.0f) {
-      gfx->fillArc(CX, CY, r, inner, a0 + 360.0f, 360.0f, col);
-      a0 = 0.0f;
-    } else if (a1 > 360.0f) {
-      gfx->fillArc(CX, CY, r, inner, 0.0f, a1 - 360.0f, col);
-      a1 = 360.0f;
-    }
-    gfx->fillArc(CX, CY, r, inner, a0, a1, col);
+    if (t < FIRST + SPAN * ((float)i / (float)N)) break;
+    const float mid = 270.0f + 360.0f * ((float)i / (float)N);
+    ringSeg(r, inner, mid - HALF, mid + HALF, COL_GOLD);
   }
+}
+
+// The wordmark rises, holds, then dissolves before the deck appears.
+static float bootWordAlpha(float t) {
+  static const float IN0 = 0.30f, IN1 = 0.55f, OUT0 = 0.78f, OUT1 = 1.04f;
+  if (t <= IN0 || t >= OUT1) return 0.0f;
+  if (t < IN1) return easeOut((t - IN0) / (IN1 - IN0));
+  if (t < OUT0) return 1.0f;
+  return 1.0f - easeOut((t - OUT0) / (OUT1 - OUT0));
 }
 
 void uiBoot(uint32_t ageMs, bool fsOk, bool touchOk) {
   gfx->clear(COL_BG);
-  const float t = ageMs / 1400.0f;
+  const float t = ageMs / 2600.0f;
   const float e = easeOut(t);
 #if UI_ROUND
-  const int16_t cy = CY - 30, titleY = CY + 100, subY = CY + 128;
+  const int16_t cy = CY - 34, titleY = CY + 112;
 #else
-  const int16_t cy = 200, titleY = 320, subY = 348;
+  const int16_t cy = 196, titleY = 332;
 #endif
   const int16_t r = (int16_t)(8 + 60 * e);
   const uint16_t col = blend565(COL_BG, COL_GOLD, (uint8_t)(255 * (t < 1 ? t : 1)));
   gfx->drawCircle(CX, cy, r, col);
-  gfx->drawCircle(CX, cy, (int16_t)(r * 0.62f), blend565(COL_BG, COL_GOLD_DIM, (uint8_t)(255 * e)));
+  gfx->drawCircle(CX, cy, (int16_t)(r * 0.66f), blend565(COL_BG, COL_GOLD_DIM, (uint8_t)(255 * e)));
+  gfx->drawCircle(CX, cy, (int16_t)(r * 0.36f), blend565(COL_BG, COL_GOLD_DIM, (uint8_t)(170 * e)));
   gfx->fillCircle(CX, cy, 2, col);
   bootTicks(t);
-  if (t > 0.35f) {
-    const uint8_t a = (uint8_t)(255 * easeOut((t - 0.35f) / 0.5f));
+  const float wa = bootWordAlpha(t);
+  if (wa > 0.0f) {
+    const uint8_t a = (uint8_t)(255 * wa);
     // One word, two weights: the size is dim, the deck is bright. Drawn as
     // two pieces so the pair still centres as a single wordmark.
-    const int16_t wTiny = txtWidth(lora_title, "tiny");
-    const int16_t wArc = txtWidth(lora_title, "arcana");
+    const int16_t wTiny = txtWidth(lora_name, "tiny");
+    const int16_t wArc = txtWidth(lora_name, "arcana");
     const int16_t x0 = (int16_t)(CX - (wTiny + wArc) / 2);
-    txtDraw(lora_title, "tiny", x0, titleY, blend565(COL_BG, COL_GOLD_DIM, a));
-    txtDraw(lora_title, "arcana", (int16_t)(x0 + wTiny), titleY,
+    txtDraw(lora_name, "tiny", x0, titleY, blend565(COL_BG, COL_GOLD_DIM, a));
+    txtDraw(lora_name, "arcana", (int16_t)(x0 + wTiny), titleY,
             blend565(COL_BG, COL_IVORY, a));
-    txtCenter(lora_small, "TWENTY-TWO MAJORS", CX, subY, blend565(COL_BG, COL_GOLD_DIM, a), 2);
   }
   if (!fsOk) hint("CARD IMAGES MISSING", "pio run -t uploadfs");
   else if (!touchOk) hint("TOUCH NOT FOUND");
@@ -192,11 +216,9 @@ void uiBoot(uint32_t ageMs, bool fsOk, bool touchOk) {
 // ---------------- Deck ----------------
 static void deckTitle() {
 #if UI_ROUND
-  txtCenter(lora_title, "Tarot", CX, 72, COL_IVORY);
-  txtCenter(lora_small, "PAST   PRESENT   FUTURE", CX, 96, COL_GOLD_DIM, 2);
+  txtCenter(lora_title, "Tarot", CX, 80, COL_IVORY);
 #else
-  txtCenter(lora_title, "Tarot", CX, 62, COL_IVORY);
-  txtCenter(lora_small, "PAST   PRESENT   FUTURE", CX, 88, COL_GOLD_DIM, 2);
+  txtCenter(lora_title, "Tarot", CX, 70, COL_IVORY);
 #endif
 }
 
@@ -204,19 +226,37 @@ static void deckTitle() {
 // clockwise from twelve o'clock along the edge of the glass. On the square
 // board the same arc runs inside the largest circle that fits.
 static void rimFill(float progress) {
+  static const uint8_t N = 21;      // one per numbered trump, as on the boot screen
+  static const float GAP = 2.6f;    // degrees of unlit rim between segments
   const int16_t r = (SCR_W < SCR_H ? SCR_W : SCR_H) / 2 - 2;
   const int16_t thick = 5;
-  // Arduino_GFX arcs: 0 degrees is at three o'clock, increasing clockwise.
-  gfx->drawArc(CX, CY, r, r - thick, 0, 360, COL_RULE);
-  if (progress <= 0) return;
-  const float sweep = 360.0f * (progress > 1 ? 1 : progress);
-  const float start = 270.0f;
-  const float end = start + sweep;
-  if (end <= 360.0f) {
-    gfx->fillArc(CX, CY, r, r - thick, start, end, COL_GOLD);
-  } else {
-    gfx->fillArc(CX, CY, r, r - thick, start, 360.0f, COL_GOLD);
-    gfx->fillArc(CX, CY, r, r - thick, 0.0f, end - 360.0f, COL_GOLD);
+  const float step = 360.0f / (float)N;
+  const float p = progress < 0.0f ? 0.0f : (progress > 1.0f ? 1.0f : progress);
+
+  // Lit straight off progress, the same way bootTicks() reads off its own
+  // clock. An earlier version advanced at most one segment per frame, which
+  // sounds like it should look more deliberate and does the opposite: the ring
+  // falls behind the charge all the way up and then catches up in one jump at
+  // the end. If a frame covers two segments, two appear, and it still reads as
+  // counting.
+  const uint8_t lit = (uint8_t)(p * (float)N);
+
+  // Unlike the boot screen, which counts the trumps in order, the shuffle
+  // fills at random: it is a shuffle, so the ring should not read as counting.
+  // The order is drawn once per hold from the same hardware entropy the deal
+  // uses, and stays fixed for that hold so segments never flicker between
+  // frames. entropyDraw with n == range is a permutation.
+  static uint8_t order[N];
+  static float lastP = 2.0f;
+  if (p < lastP) entropyDraw(order, N, N);
+  lastP = p;
+
+  // The unlit track is one thin ring, not twenty-one arcs.
+  gfx->drawArc(CX, CY, r, (int16_t)(r - thick), 0, 360, COL_RULE);
+  for (uint8_t i = 0; i < lit; i++) {
+    const float a0 = 270.0f + step * (float)order[i] + GAP * 0.5f;
+    const float a1 = 270.0f + step * (float)(order[i] + 1) - GAP * 0.5f;
+    ringSeg(r, (int16_t)(r - thick), a0, a1, COL_GOLD);
   }
 }
 
@@ -368,11 +408,13 @@ static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t
     char buf[64];
     snprintf(buf, sizeof buf, "Beneath them: %s", CARDS[h].name);
 #if UI_ROUND
-    txtCenter(lora_italic, buf, CX, 396, COL_DIM);
-    hint("TAP A CARD TO READ IT", "PWR: INNER   BOOT+PWR: CLOSE");
+    // 226 px at its longest ("Beneath them: The High Priestess"), so it needs
+    // a chord of at least that: 384 gives 318.
+    txtCenter(lora_italic, buf, CX, 384, COL_DIM);
+    hint("TAP A CARD TO READ IT", nullptr, 416);
 #else
-    txtCenter(lora_italic, buf, CX, 386, COL_DIM);
-    hint("TAP A CARD TO READ IT", "PWR: INNER   BOOT+PWR: CLOSE");
+    txtCenter(lora_italic, buf, CX, 380, COL_DIM);
+    hint("TAP A CARD TO READ IT");
 #endif
   } else {
     hint("TAP A CARD TO TURN IT");
@@ -479,9 +521,10 @@ void uiInner(const Spread &s, uint8_t page, uint8_t pages) {
     }
   }
 
+  // No hint here: the reading fills the page down to INNER_BOTTOM and any
+  // hint line would sit on top of it. The dots carry the paging, and the help
+  // screen documents the controls.
   dots(pages, page, DOTS_Y);
-  if (page + 1 < pages) hint("TAP: NEXT PAGE", "PWR: BACK");
-  else hint("TAP OR PWR: BACK");
 }
 
 // ---------------- Hit testing ----------------

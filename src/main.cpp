@@ -32,7 +32,7 @@ enum Screen : uint8_t {
   SCR_INNER,
 };
 
-static const uint32_t BOOT_MS = 1900;
+static const uint32_t BOOT_MS = 2900;
 static const uint32_t SHUFFLE_MS = 2400;
 static const uint32_t CUT_MS = 700;
 static const uint32_t DEAL_MS = 1100;
