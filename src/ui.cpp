@@ -125,6 +125,39 @@ static void upper(char *dst, size_t n, const char *s) {
 }
 
 // ---------------- Boot ----------------
+
+// Twenty-two ticks around the rim, one per major, counted out clockwise from
+// twelve o'clock: the deck assembling itself before it can be dealt. Same
+// inscribed circle rimFill() uses, so it lands on the glass edge on the round
+// board and inside the largest circle that fits on the square one.
+static void bootTicks(float t) {
+  static const uint8_t N = 22;
+  static const float FIRST = 0.15f;   // first tick
+  static const float SPAN = 0.70f;    // last tick lands at FIRST + SPAN
+  static const float FADE = 0.10f;    // each tick fades in over this
+  const int16_t r = (SCR_W < SCR_H ? SCR_W : SCR_H) / 2 - 2;
+  const int16_t inner = (int16_t)(r - 12);
+  for (uint8_t i = 0; i < N; i++) {
+    const float due = FIRST + SPAN * ((float)i / (float)N);
+    if (t < due) break;               // ticks are in order, so stop at the first unlit
+    const float age = (t - due) / FADE;
+    const uint8_t a = (uint8_t)(255 * (age > 1 ? 1 : age));
+    const uint16_t col = blend565(COL_BG, COL_GOLD_DIM, a);
+    float mid = 270.0f + 360.0f * ((float)i / (float)N);
+    if (mid >= 360.0f) mid -= 360.0f;
+    float a0 = mid - 1.6f, a1 = mid + 1.6f;
+    // Arduino_GFX will not draw an arc across the 0/360 seam; split it.
+    if (a0 < 0.0f) {
+      gfx->fillArc(CX, CY, r, inner, a0 + 360.0f, 360.0f, col);
+      a0 = 0.0f;
+    } else if (a1 > 360.0f) {
+      gfx->fillArc(CX, CY, r, inner, 0.0f, a1 - 360.0f, col);
+      a1 = 360.0f;
+    }
+    gfx->fillArc(CX, CY, r, inner, a0, a1, col);
+  }
+}
+
 void uiBoot(uint32_t ageMs, bool fsOk, bool touchOk) {
   gfx->clear(COL_BG);
   const float t = ageMs / 1400.0f;
@@ -139,9 +172,17 @@ void uiBoot(uint32_t ageMs, bool fsOk, bool touchOk) {
   gfx->drawCircle(CX, cy, r, col);
   gfx->drawCircle(CX, cy, (int16_t)(r * 0.62f), blend565(COL_BG, COL_GOLD_DIM, (uint8_t)(255 * e)));
   gfx->fillCircle(CX, cy, 2, col);
+  bootTicks(t);
   if (t > 0.35f) {
     const uint8_t a = (uint8_t)(255 * easeOut((t - 0.35f) / 0.5f));
-    txtCenter(lora_title, "Tarot", CX, titleY, blend565(COL_BG, COL_IVORY, a));
+    // One word, two weights: the size is dim, the deck is bright. Drawn as
+    // two pieces so the pair still centres as a single wordmark.
+    const int16_t wTiny = txtWidth(lora_title, "tiny");
+    const int16_t wArc = txtWidth(lora_title, "arcana");
+    const int16_t x0 = (int16_t)(CX - (wTiny + wArc) / 2);
+    txtDraw(lora_title, "tiny", x0, titleY, blend565(COL_BG, COL_GOLD_DIM, a));
+    txtDraw(lora_title, "arcana", (int16_t)(x0 + wTiny), titleY,
+            blend565(COL_BG, COL_IVORY, a));
     txtCenter(lora_small, "TWENTY-TWO MAJORS", CX, subY, blend565(COL_BG, COL_GOLD_DIM, a), 2);
   }
   if (!fsOk) hint("CARD IMAGES MISSING", "pio run -t uploadfs");
