@@ -33,11 +33,3 @@
 // BOOT is a GPIO. PWR is the AXP2101 power key, read as a PMU IRQ; a long
 // hold still powers the board off in hardware.
 #define BTN_BOOT 0
-
-// ES8311 codec and amplifier enable. MCLK is intentionally not driven; the
-// codec is clocked from BCLK. See audio.cpp.
-#define I2S_BCK_IO 9
-#define I2S_WS_IO  45
-#define I2S_DO_IO  8
-#define PA_EN      46
-#define ES8311_I2C_ADDR 0x18

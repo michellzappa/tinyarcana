@@ -21,19 +21,14 @@ cards say to each other. Offline. No account, no API, no cloud.
 6. **Go inside.** PWR opens the inner reading.
 
 From the deck screen, PWR opens the menu. Settings persist across boots and
-currently cover the active deck, brightness, sound level, and the underlying
+currently cover the active deck, brightness, and the underlying
 card line. Rider-Waite-Smith is the first and default deck; the firmware is
 structured for additional 22-card Major-only decks.
 
 In the menu, BOOT moves between items and PWR opens one. In Settings, BOOT
 moves between rows, PWR changes the selected value, and tapping the bottom
-edge returns to the menu.
-
-Every step has a sound: a bell on boot, a low drone that rises in pitch and
-brightness while your hand is on the deck, a breath when the deck cuts, a
-tick per dealt card, a tock and blip per flip, a chord when all three are
-up. All of it is synthesised on the chip (`src/audio.cpp`); there are no
-sample files.
+edge returns to the menu. The selected menu or settings row has a filled
+circular marker; unselected rows have hollow markers.
 
 ### Inner reading
 
@@ -96,8 +91,6 @@ src/
   cards.*           LittleFS card bitmaps, rounded blits, procedural back
   text.*            anti-aliased Lora text, wrapping, paging
   entropy.*         hardware RNG + touch stirring
-  audio.*           additive synth over I2S into the ES8311
-  es8311.*          codec driver (Espressif, Apache-2.0)
   board_display.*   CO5300 round panel and AXP2101
   board_input.*     BOOT, PWR and CST9217 touch
   fonts/            generated glyph tables

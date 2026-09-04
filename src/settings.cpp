@@ -2,14 +2,12 @@
 
 #include <Preferences.h>
 
-#include "audio.h"
 #include "board_display.h"
 #include "deck.h"
 
 static const uint8_t DEFAULT_BRIGHTNESS = 200;
-static const uint8_t DEFAULT_VOLUME = 100;
 
-AppSettings appSettings = {0, DEFAULT_BRIGHTNESS, DEFAULT_VOLUME, true};
+AppSettings appSettings = {0, DEFAULT_BRIGHTNESS, true};
 
 static Preferences prefs;
 
@@ -18,24 +16,21 @@ void settingsBegin() {
   appSettings.deckId = prefs.getUChar("deck", 0);
   if (appSettings.deckId >= DECK_COUNT) appSettings.deckId = 0;
   appSettings.brightness = prefs.getUChar("bright", DEFAULT_BRIGHTNESS);
-  appSettings.volume = prefs.getUChar("volume", DEFAULT_VOLUME);
   appSettings.showHiddenCard = prefs.getBool("hidden", true);
 }
 
 void settingsApplyHardware() {
   boardSetBrightness(appSettings.brightness);
-  audioSetVolume(appSettings.volume);
 }
 
 void settingsSave() {
   prefs.putUChar("deck", appSettings.deckId);
   prefs.putUChar("bright", appSettings.brightness);
-  prefs.putUChar("volume", appSettings.volume);
   prefs.putBool("hidden", appSettings.showHiddenCard);
 }
 
 void settingsReset() {
-  appSettings = {0, DEFAULT_BRIGHTNESS, DEFAULT_VOLUME, true};
+  appSettings = {0, DEFAULT_BRIGHTNESS, true};
   settingsSave();
   settingsApplyHardware();
 }

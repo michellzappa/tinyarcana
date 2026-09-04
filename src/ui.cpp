@@ -293,8 +293,14 @@ void uiMenu(uint8_t selected) {
   rule(HEAD_Y + 14, COL_GOLD_DIM);
   const char *items[] = {"HOW TO READ", "SETTINGS"};
   for (uint8_t i = 0; i < 2; i++) {
-    const uint16_t col = i == selected ? COL_GOLD : COL_IVORY;
-    txtCenter(lora_label, items[i], CX, (int16_t)(190 + i * 58), col, 3);
+    const bool isSelected = i == selected;
+    const int16_t y = (int16_t)(190 + i * 58);
+    const int16_t markerX = (int16_t)(CX - 142);
+    gfx->drawCircle(markerX, (int16_t)(y + 8), 6,
+                    isSelected ? COL_GOLD : COL_RULE);
+    if (isSelected) gfx->fillCircle(markerX, (int16_t)(y + 8), 3, COL_GOLD);
+    const uint16_t col = isSelected ? COL_GOLD : COL_IVORY;
+    txtCenter(lora_label, items[i], CX, y, col, 3);
   }
   hint("TAP OUTSIDE: BACK", "BOOT: NEXT   PWR: OPEN");
 }
@@ -324,27 +330,27 @@ void uiSettings(const AppSettings &settings, uint8_t selected) {
   txtCenter(lora_head, "Settings", CX, HEAD_Y, COL_IVORY);
   rule(HEAD_Y + 14, COL_GOLD_DIM);
 
-  const char *labels[] = {"DECK", "BRIGHTNESS", "SOUND", "BENEATH THE SPREAD"};
+  const char *labels[] = {"DECK", "BRIGHTNESS", "BENEATH THE SPREAD"};
   char value[48];
-  for (uint8_t i = 0; i < 4; i++) {
-    const int16_t y = (int16_t)(145 + i * 58);
-    const uint16_t col = i == selected ? COL_GOLD : COL_DIM;
+  for (uint8_t i = 0; i < 3; i++) {
+    const int16_t y = (int16_t)(145 + i * 76);
+    const bool isSelected = i == selected;
+    const uint16_t col = isSelected ? COL_GOLD : COL_DIM;
+    const int16_t markerX = (int16_t)(CX - 142);
+    gfx->drawCircle(markerX, (int16_t)(y + 12), 6,
+                    isSelected ? COL_GOLD : COL_RULE);
+    if (isSelected) gfx->fillCircle(markerX, (int16_t)(y + 12), 3, COL_GOLD);
     txtCenter(lora_small, labels[i], CX, y, col, 2);
     if (i == 0) {
       snprintf(value, sizeof value, "%s", deckById(settings.deckId).name);
     } else if (i == 1) {
       snprintf(value, sizeof value, "%u%%",
                (unsigned int)((settings.brightness * 100u + 127u) / 255u));
-    } else if (i == 2) {
-      if (settings.volume)
-        snprintf(value, sizeof value, "%u%%", settings.volume);
-      else
-        snprintf(value, sizeof value, "OFF");
     } else {
       snprintf(value, sizeof value, "%s", settings.showHiddenCard ? "ON" : "OFF");
     }
     txtCenter(lora_label, value, CX, (int16_t)(y + 23),
-              i == selected ? COL_IVORY : COL_DIM, 2);
+              isSelected ? COL_IVORY : COL_DIM, 2);
   }
   hint("TAP BOTTOM: BACK", "BOOT: NEXT   PWR: CHANGE");
 }
@@ -598,9 +604,9 @@ int8_t uiMenuHit(int16_t x, int16_t y) {
 
 int8_t uiSettingsHit(int16_t x, int16_t y) {
   if (x < 30 || x > SCR_W - 30) return -1;
-  for (int8_t i = 0; i < 4; i++) {
-    const int16_t top = (int16_t)(112 + i * 58);
-    if (y >= top && y < top + 58) return i;
+  for (int8_t i = 0; i < 3; i++) {
+    const int16_t top = (int16_t)(112 + i * 76);
+    if (y >= top && y < top + 76) return i;
   }
   return -1;
 }

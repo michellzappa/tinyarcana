@@ -83,20 +83,9 @@ LittleFS mounts by default, and a 64 KiB coredump at the end of flash. Five
 ## Randomness
 
 `src/entropy.cpp` calls `bootloader_random_enable()` once at boot and leaves
-it on. The header says to disable it before the ADC, the radio, or I2S on
-the original ESP32 only; this is an S3 and the I2S audio path is unaffected.
+it on. The header says to disable it before the ADC or radio on the original
+ESP32 only.
 If the ADC or Wi-Fi are ever added, disable it first.
-
-## Audio
-
-`src/audio.cpp` renders an additive synth on core 0 into the ES8311 at
-22050 Hz, 16-bit stereo. The codec is clocked from BCLK
-(`mclk_from_mclk_pin = false`), so **no MCLK pin is driven**. That is
-deliberate: MCLK is GPIO42 on the 1.75 and GPIO16 on the 1.75C, and this
-firmware does not know which unit it is on. BCLK 9, WS 45, DOUT 8 and
-PA_EN 46 are fixed on the round board.
-The driver's coefficient table needs `rate * 32` to be a listed clock;
-22050 (705600 Hz) is. Changing the sample rate means checking that table.
 
 ## Text and layout
 

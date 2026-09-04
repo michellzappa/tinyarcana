@@ -8,7 +8,6 @@
 //   the next shuffle starts from scratch.
 #include <Arduino.h>
 
-#include "audio.h"
 #include "board_display.h"
 #include "board_input.h"
 #include "cards.h"
@@ -46,7 +45,7 @@ static const uint32_t ZOOM_MS = 380;
 
 static Screen screen = SCR_BOOT;
 static uint32_t enterMs = 0;
-static bool fsOk = false, touchOk = false, audioOk = false;
+static bool fsOk = false, touchOk = false;
 
 static Spread spread;
 static int8_t flipSlot = -1;
@@ -86,25 +85,21 @@ static bool allRevealed() {
 
 static void startFlip(uint8_t slot) {
   flipSlot = (int8_t)slot;
-  audioPlay(SND_FLIP);
   go(SCR_FLIP);
 }
 
-static void openCard(uint8_t pos, Sound snd) {
+static void openCard(uint8_t pos) {
   cardPos = pos;
-  audioPlay(snd);
   go(SCR_CARD);
 }
 
 // From the spread: the card grows out of its slot first.
 static void zoomCard(uint8_t pos) {
   cardPos = pos;
-  audioPlay(SND_OPEN);
   go(SCR_ZOOM);
 }
 
 static void backToSpread() {
-  audioPlay(SND_BACK);
   go(SCR_SPREAD);
 }
 
@@ -116,13 +111,11 @@ static void openInner() {
     innerReady = true;
   }
   innerPage = 0;
-  audioPlay(SND_OPEN);
   go(SCR_INNER);
 }
 
 static void startCut() {
   newReading();
-  audioPlay(SND_CUT);
   go(SCR_CUT);
 }
 
@@ -140,11 +133,6 @@ static void adjustSetting() {
     else appSettings.brightness = 64;
     break;
   case 2:
-    appSettings.volume = appSettings.volume >= 100
-                             ? 0
-                             : (uint8_t)(appSettings.volume + 20);
-    break;
-  case 3:
     appSettings.showHiddenCard = !appSettings.showHiddenCard;
     break;
   }
@@ -169,13 +157,11 @@ void setup() {
   if (!boardDisplayBegin()) Serial.println("display init failed");
   boardInputBegin();
   touchOk = boardTouchPresent();
-  audioOk = audioBegin();
   settingsApplyHardware();
   fsOk = cardsBegin();
   if (fsOk) fsOk = cardsSelectDeck(deckById(appSettings.deckId));
   gfx->clear(COL_BG);
   gfx->flush();
-  audioPlay(SND_BOOT);
   go(SCR_BOOT);
 }
 
@@ -195,7 +181,6 @@ void loop() {
     bootChordUsed = true;
     holding = false;
     dealt = 0;
-    audioPlay(SND_BACK);
     go(SCR_GATHER);
     return;
   }
@@ -221,12 +206,10 @@ void loop() {
       entropyStir(((uint32_t)in.x << 16) | (uint16_t)in.y, now);
       progress = (now - holdStart) / (float)SHUFFLE_MS;
       if (progress > 1) progress = 1;
-      audioDrone(1.0f, progress);
     }
     if (holding && in.touchEnded) {
       holding = false;
       progress = (now - holdStart) / (float)SHUFFLE_MS;
-      audioDrone(0, progress);
       if (progress >= 1.0f) {
         entropyStir(now - holdStart, entropyStirs());
         startCut();
@@ -234,7 +217,7 @@ void loop() {
       progress = 0;
     }
     uiDeck(now, holding && in.touchDown, progress);
-    if (in.bPressed) { audioPlay(SND_PAGE); menuCursor = 0; go(SCR_MENU); }
+    if (in.bPressed) { menuCursor = 0; go(SCR_MENU); }
     // BOOT on the deck: a quick draw for the impatient (hardware noise only).
     if (in.aPressed) startCut();
     break;
@@ -245,21 +228,19 @@ void loop() {
     if (in.tap) {
       const int8_t item = uiMenuHit(in.x, in.y);
       if (item >= 0) { menuCursor = (uint8_t)item; openMenuItem(menuCursor); }
-      else { audioPlay(SND_BACK); go(SCR_DECK); }
+      else { go(SCR_DECK); }
     } else if (in.aPressed) {
       menuCursor = (uint8_t)((menuCursor + 1) % 2);
-      audioPlay(SND_PAGE);
     } else if (in.bPressed) {
       openMenuItem(menuCursor);
     } else if (in.aLong) {
-      audioPlay(SND_BACK);
       go(SCR_DECK);
     }
     break;
 
   case SCR_HELP:
     uiHelp();
-    if (in.tap || in.aPressed || in.bPressed) { audioPlay(SND_BACK); go(SCR_MENU); }
+    if (in.tap || in.aPressed || in.bPressed) go(SCR_MENU);
     break;
 
   case SCR_SETTINGS:
@@ -270,16 +251,13 @@ void loop() {
         settingsCursor = (uint8_t)item;
         adjustSetting();
       } else {
-        audioPlay(SND_BACK);
         go(SCR_MENU);
       }
     } else if (in.aPressed) {
-      settingsCursor = (uint8_t)((settingsCursor + 1) % 4);
-      audioPlay(SND_PAGE);
+      settingsCursor = (uint8_t)((settingsCursor + 1) % 3);
     } else if (in.bPressed) {
       adjustSetting();
     } else if (in.aLong) {
-      audioPlay(SND_BACK);
       go(SCR_MENU);
     }
     break;
@@ -292,7 +270,7 @@ void loop() {
   case SCR_DEAL: {
     const float p = age / (float)DEAL_MS;
     // One tick as each card leaves the deck (uiDeal starts card i at i*0.22).
-    while (dealt < 3 && p >= dealt * 0.22f) { audioPlay(SND_DEAL); dealt++; }
+    while (dealt < 3 && p >= dealt * 0.22f) dealt++;
     uiDeal(p);
     if (age >= DEAL_MS) go(SCR_SPREAD);
     break;
@@ -300,7 +278,7 @@ void loop() {
 
   case SCR_GATHER: {
     const float p = age / (float)GATHER_MS;
-    while (dealt < 3 && p >= dealt * 0.22f) { audioPlay(SND_DEAL); dealt++; }
+    while (dealt < 3 && p >= dealt * 0.22f) dealt++;
     uiGather(p);
     if (age >= GATHER_MS) go(SCR_DECK);
     break;
@@ -338,7 +316,6 @@ void loop() {
     if (age >= FLIP_MS) {
       spread.revealed[flipSlot] = true;
       flipSlot = -1;
-      if (allRevealed()) audioPlay(SND_CHORD);
       go(SCR_SPREAD);
     }
     break;
@@ -353,29 +330,28 @@ void loop() {
 
   case SCR_CARD:
     uiCardBig(spread, cardPos);
-    if (in.tap || in.aPressed) { audioPlay(SND_PAGE); go(SCR_MEANING); }
-    else if (in.swipeLeft) { if (cardPos < 2) openCard(cardPos + 1, SND_PAGE); else backToSpread(); }
-    else if (in.swipeRight) { if (cardPos > 0) openCard(cardPos - 1, SND_PAGE); else backToSpread(); }
+    if (in.tap || in.aPressed) go(SCR_MEANING);
+    else if (in.swipeLeft) { if (cardPos < 2) openCard(cardPos + 1); else backToSpread(); }
+    else if (in.swipeRight) { if (cardPos > 0) openCard(cardPos - 1); else backToSpread(); }
     if (in.bPressed) openInner();
     break;
 
   case SCR_MEANING:
     uiMeaning(spread, cardPos);
     if (in.tap) backToSpread();
-    else if (in.aPressed) { if (cardPos < 2) openCard(cardPos + 1, SND_PAGE); else backToSpread(); }
-    else if (in.swipeLeft) { if (cardPos < 2) openCard(cardPos + 1, SND_PAGE); else backToSpread(); }
-    else if (in.swipeRight) { if (cardPos > 0) openCard(cardPos - 1, SND_PAGE); else backToSpread(); }
+    else if (in.aPressed) { if (cardPos < 2) openCard(cardPos + 1); else backToSpread(); }
+    else if (in.swipeLeft) { if (cardPos < 2) openCard(cardPos + 1); else backToSpread(); }
+    else if (in.swipeRight) { if (cardPos > 0) openCard(cardPos - 1); else backToSpread(); }
     if (in.bPressed) openInner();
     break;
 
   case SCR_INNER:
     uiInner(spread, innerPage, innerPages);
     if (in.tap || in.swipeLeft || in.aPressed) {
-      if (innerPage + 1 < innerPages) { innerPage++; audioPlay(SND_PAGE); }
+      if (innerPage + 1 < innerPages) innerPage++;
       else backToSpread();
     } else if (in.swipeRight && innerPage > 0) {
       innerPage--;
-      audioPlay(SND_PAGE);
     }
     if (in.bPressed) backToSpread();
     break;

@@ -5,7 +5,6 @@
 struct AppSettings {
   uint8_t deckId;
   uint8_t brightness;
-  uint8_t volume;
   bool showHiddenCard;
 };
 
