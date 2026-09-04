@@ -15,3 +15,7 @@ The corresponding deck metadata, meanings, and registry entry still belong in
 
 Only add artwork whose redistribution terms are clear and include its credit
 in `LICENSE`.
+
+The bundled `gptarot` pack uses the first (`a`) illustration for each Major
+from the GPTarot.ai image set. GPTarot artwork is credited in `LICENSE` and is
+not covered by this repository's MIT license.

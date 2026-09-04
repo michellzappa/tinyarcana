@@ -33,8 +33,8 @@ the dot at the centre rather than a mark on the wheel.
 
 From the deck screen, PWR opens the menu. Settings persist across boots and
 currently cover the active deck, brightness, and the underlying
-card line. Rider-Waite-Smith is the first and default deck; the firmware is
-structured for additional 22-card Major-only decks.
+card line. Rider-Waite-Smith is the first and default deck, and GPTarot is
+available as a second 22-card Major-only artwork option.
 
 In the menu, BOOT moves between items and PWR opens one. In Settings, BOOT
 moves between rows, PWR changes the selected value, and tapping the bottom
@@ -112,6 +112,7 @@ assets/fonts/             Lora (SIL OFL)
 scripts/build_assets.py   cards + fonts
 scripts/preview_read.py   meaning-page layout preview (mirrors ui.cpp)
 tools/                    host tools for the on-device reading model
+docs/reading-model.md     handover for the model work: decisions, traps, next steps
 data/<env>/               generated LittleFS payload (gitignored)
 ```
 

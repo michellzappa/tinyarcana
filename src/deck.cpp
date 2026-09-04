@@ -42,6 +42,11 @@ static const DeckPair RWS_PAIRS[] = {
 const DeckDefinition DECKS[] = {
     {"rws", "Rider-Waite-Smith", "rws", CARDS, RWS_GLYPHS, RWS_VALUES,
      RWS_PAIRS, sizeof(RWS_PAIRS) / sizeof(RWS_PAIRS[0]), MAJOR_COUNT},
+    // GPTarot is an alternate artwork pack for the same Major Arcana
+    // identities and meanings. Its asset directory contains one selected
+    // illustration per card; the semantic tables remain shared with RWS.
+    {"gptarot", "GPTarot", "gptarot", CARDS, RWS_GLYPHS, RWS_VALUES,
+     RWS_PAIRS, sizeof(RWS_PAIRS) / sizeof(RWS_PAIRS[0]), MAJOR_COUNT},
 };
 
 const uint8_t DECK_COUNT = sizeof(DECKS) / sizeof(DECKS[0]);

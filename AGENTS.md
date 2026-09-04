@@ -143,6 +143,12 @@ port ("Serial data stream stopped"). The default rate read all 16 MB in about
 Back up a board's factory flash before the first write to it, and read the MAC
 first. `AGENTS.local.md` lists which board is which.
 
+## The reading model
+
+`docs/reading-model.md` is the handover for replacing the engine's prose with a
+small language model on the chip. It carries the decisions, the traps and the
+remaining work. The sections below cover the tools it uses.
+
 ## Reading the engine on the host
 
 `src/tarot_engine.cpp` needs no Arduino runtime. `tarot_engine.h` includes
@@ -265,6 +271,9 @@ Three distinct cards sum to at least 0+1+2=3, so the reduction can never name
 are Temperance (102 of 9240 spreads), The Devil (114) and The Tower (126).
 
 ## Writing the corpus
+
+`tools/build_corpus.py` extracts, scores, selects and indexes the reference
+books; `tools/clean_corpus.py` repairs what OCR damage can be repaired.
 
 `tools/synthesize.py` turns the sampled spreads into training text through the
 Batch API, in three steps because a batch runs asynchronously.

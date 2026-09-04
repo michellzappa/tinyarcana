@@ -31,5 +31,8 @@ Third-party material in this repository:
   License 1.1 (assets/fonts/OFL.txt).
 - assets/cards/*.webp: the Rider-Waite-Smith tarot (Pamela Colman Smith,
   1909), public domain.
+- assets/decks/gptarot/*.webp: GPTarot artwork by Aesthetic Hermetics and
+  Michell Zappa, sourced from GPTarot.ai. These images are third-party
+  artwork and are not covered by this repository's MIT license.
 - The CST9217 touch protocol in src/board_input.cpp follows SensorLib
   (Lewis He, MIT).
