@@ -96,17 +96,52 @@ Text on the round face is wrapped per line against the chord (`widthAt()` in
 empty line a gap. `tarotCompose()` writes into a 2600-byte buffer; if the
 engine grows, grow `innerText` in `main.cpp` and `INNER_MAX_LINES` in `ui.cpp`.
 
+**Measure text against the chord before placing it.** The round face narrows
+fast towards the bottom: 282 px of usable width at baseline 404, 172 px at 444.
+Hints sat at 444 in 12 px type for a long time while the longest of them
+rendered 219 px, so the bezel ate the ends of every two-line hint. `hint()` now
+sits at 404, in 16 px, and puts the wider of two strings on the upper line
+where the chord is wider. The reading pages carry no hint at all, because the
+text fills the page to `INNER_BOTTOM` and any hint line overprinted it.
+
+`scripts/preview_read.py` mirrors the meaning-page constants. Change one and
+change the other, or the preview quietly stops matching the device.
+
 ## Frame rate
 
-Every loop paints a full frame into PSRAM and pushes it over QSPI.
-That is roughly 12 to 15 frames per second. Animations are timed in
-milliseconds, not frames, so they stay the right length regardless.
+Every loop paints a full frame into PSRAM and pushes it over QSPI. Measured on
+the round board, 2026-09-03: the boot screen runs at **140 ms a frame**, the
+deck screen at **250 ms**, of which about 190 ms is the draw itself. Roughly
+7 and 4 frames per second, not the 12 to 15 a panel this size might suggest.
+Measure before designing an animation around a frame rate.
+
+Animations are timed in milliseconds, not frames, so their length is right
+regardless. Their *smoothness* is not. Anything that wants more than about
+seven distinct steps a second cannot have them, and per-step fades are
+invisible: on the boot screen a single frame covers three ticks. Draw
+animations as a function of elapsed time and let a frame show whatever has
+happened since the last one. Do not advance a counter once per frame: that
+guarantees the animation falls behind and then catches up in one jump.
+
+**`fillArc` scans its bounding box.** For an arc at rim radius that box is the
+whole 466x466 screen, so twenty-one of them cost most of a frame. `ringSeg()`
+in `ui.cpp` draws a wedge as a fan of short radial lines instead, which touches
+only its own pixels and wraps past 360 degrees on its own.
+
+`cardDrawBack()` runs 39,600 times per card and three cards per frame on the
+deck screen. Nothing expensive belongs in that loop. It no longer does an
+integer divide (only needed when a card is squashed, which the deck screen
+never does) or a rounded-corner test (which can only reject a pixel within the
+corner radius of the top or bottom edge).
 
 ## Backing up flash over this link
 
 `read-flash` with `-b 921600` stalled at 1.6% on this board's USB-JTAG-serial
 port ("Serial data stream stopped"). The default rate read all 16 MB in about
 100 s. Do not pass a baud rate.
+
+Back up a board's factory flash before the first write to it, and read the MAC
+first. `AGENTS.local.md` lists which board is which.
 
 ## Reading the engine on the host
 

@@ -113,7 +113,7 @@ FLOW = dict(BUMPED, flow=True)
 # meanings still hold five lines.
 BUMPED2 = dict(label=16, labelY=78, name=34, nameY=122, keys=19, keysY=154, ruleY=170,
                body=21, lineH=30, bodyY=204, maxLines=6, inset=44, glyph=46, glyphY=0, cap=16, capY=0,
-               dotsY=408, flow=True, gap=50, floor=56, capGap=44)
+               dotsY=416, flow=True, gap=50, floor=64, capGap=44)
 
 
 def longest_cards(n=3):

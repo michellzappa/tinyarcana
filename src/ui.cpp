@@ -215,13 +215,6 @@ void uiBoot(uint32_t ageMs, bool fsOk, bool touchOk) {
 }
 
 // ---------------- Deck ----------------
-static void deckTitle() {
-#if UI_ROUND
-  txtCenter(lora_title, "Tarot", CX, 80, COL_IVORY);
-#else
-  txtCenter(lora_title, "Tarot", CX, 70, COL_IVORY);
-#endif
-}
 
 // The shuffle charge fills the screen's own rim: a gold arc growing
 // clockwise from twelve o'clock along the edge of the glass. On the square
@@ -263,20 +256,31 @@ static void rimFill(float progress) {
 
 void uiDeck(uint32_t nowMs, bool holding, float progress) {
   gfx->clear(COL_BG);
-  deckTitle();
 
   const float breath = 0.5f + 0.5f * sinf(nowMs / 1400.0f);
   float glow = holding ? 0.35f + 0.65f * progress : 0.15f + 0.25f * breath;
-  int16_t jx = 0, jy = 0;
+  int16_t jx = 0, jy = 0, riffle = 0, riffleY = 0;
   if (holding) {
     const int16_t amp = (int16_t)(1 + 3 * progress);
     jx = (int16_t)((int32_t)(nowMs * 7) % (2 * amp + 1)) - amp;
     jy = (int16_t)((int32_t)(nowMs * 11) % (2 * amp + 1)) - amp;
+    // The riffle. The upper two cards swing apart and back together while the
+    // rim fills, so the deck is visibly shuffling during the hold instead of
+    // only at the cut, and it works harder as the charge builds. The period
+    // stays near a second on purpose: this screen draws at a few frames a
+    // second, and anything faster samples badly and strobes.
+    const float period = 940.0f - 280.0f * progress;
+    const float phase = sinf((float)nowMs * 6.2831853f / period);
+    riffle = (int16_t)((7.0f + 25.0f * progress) * phase);
+    riffleY = (int16_t)((2.0f + 6.0f * progress) * phase);
   }
-  // Stack: three backs offset to read as thickness.
+  // Stack: three backs offset to read as thickness. The bottom one holds
+  // still so the pile never looks like it has left the table.
   cardDrawBack(DECK_CX + 5, DECK_Y + 5, DECK_W, DECK_H, 1.0f, 0.0f);
-  cardDrawBack(DECK_CX + 2, DECK_Y + 2, DECK_W, DECK_H, 1.0f, 0.05f);
-  cardDrawBack(DECK_CX + jx, DECK_Y + jy, DECK_W, DECK_H, 1.0f, glow);
+  cardDrawBack((int16_t)(DECK_CX + 2 - riffle), (int16_t)(DECK_Y + 2 - riffleY),
+               DECK_W, DECK_H, 1.0f, 0.05f);
+  cardDrawBack((int16_t)(DECK_CX + jx + riffle), (int16_t)(DECK_Y + jy + riffleY),
+               DECK_W, DECK_H, 1.0f, glow);
 
   if (holding) {
     rimFill(progress);
@@ -356,21 +360,9 @@ void uiSettings(const AppSettings &settings, uint8_t selected) {
 }
 
 // ---------------- Cut and deal ----------------
-void uiCut(float p) {
-  gfx->clear(COL_BG);
-  deckTitle();
-  const float s = sinf(p * 3.14159f);
-  const int16_t off = (int16_t)(58 * s);
-  const int16_t lift = (int16_t)(10 * s);
-  cardDrawBack(DECK_CX + 5, DECK_Y + 5, DECK_W, DECK_H, 1.0f, 0.0f);
-  cardDrawBack(DECK_CX - off, DECK_Y + lift, DECK_W, DECK_H, 1.0f, 0.3f);
-  cardDrawBack(DECK_CX + off, DECK_Y - lift, DECK_W, DECK_H, 1.0f, 0.6f);
-  hint("CUT");
-}
 
 void uiDeal(float p) {
   gfx->clear(COL_BG);
-  deckTitle();
   // No deck under the spread: the first card is the deck, and the moment
   // it moves the stack behind it is gone.
   for (uint8_t i = 0; i < 3; i++) {
@@ -387,7 +379,6 @@ void uiDeal(float p) {
 
 void uiGather(float p) {
   gfx->clear(COL_BG);
-  deckTitle();
   // Future returns first, then present, then past lands on top as the deck.
   for (int8_t i = 2; i >= 0; i--) {
     const float start = (2 - i) * 0.22f;
@@ -465,16 +456,14 @@ static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t
     // 226 px at its longest ("Beneath them: The High Priestess"), so it needs
     // a chord of at least that: 384 gives 318.
     txtCenter(lora_italic, buf, CX, 384, COL_DIM);
-    hint("TAP A CARD TO READ IT", nullptr, 416);
 #else
     txtCenter(lora_italic, buf, CX, 380, COL_DIM);
-    hint("TAP A CARD TO READ IT");
 #endif
-  } else if (n == 3) {
-    hint("TAP A CARD TO READ IT", "PWR: INNER   BOOT+PWR: CLOSE");
-  } else {
-    hint("TAP A CARD TO TURN IT");
   }
+  // The hint stands only until the first card turns. After that the spread
+  // says what to do by looking like a spread, and the reader has already
+  // proved they know how.
+  if (n == 0) hint("TAP A CARD TO TURN IT");
 }
 
 // ---------------- One card, large ----------------
@@ -515,7 +504,7 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   // hung a fixed distance under the last line so the page reads as one block.
   // scripts/preview_read.py BUMPED2 mirrors these numbers.
   int16_t glyphY = (int16_t)(after - lineH + 50);
-  const int16_t glyphMaxY = DOTS_Y - 56;
+  const int16_t glyphMaxY = DOTS_Y - 64;
   if (glyphY > glyphMaxY) glyphY = glyphMaxY;
   if (deck.glyphs) glyphDraw(deck.glyphs[idx], CX, glyphY, 46, COL_GOLD);
   char cap[48];
@@ -526,9 +515,10 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   else snprintf(cap, sizeof cap, "%s   %s   %s", c.numeral, ruler, el);
   txtCenter(lora_label, cap, CX, (int16_t)(glyphY + 44), COL_GOLD_DIM, 2);
 
+  // No hint here. The attribution sits at glyphY + 44 and the two hint lines
+  // sat at 380 and 404, so all three shared two rows and overprinted. This is
+  // a reading page: the dots carry position, the menu documents the controls.
   dots(3, pos, DOTS_Y);
-  if (pos == 2) hint("TAP: SPREAD   BOOT: SPREAD", "PWR: INNER READING");
-  else hint("TAP: SPREAD   BOOT: NEXT CARD", "PWR: INNER READING");
 }
 
 // ---------------- Inner reading ----------------

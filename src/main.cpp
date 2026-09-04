@@ -24,7 +24,6 @@ enum Screen : uint8_t {
   SCR_MENU,
   SCR_HELP,
   SCR_SETTINGS,
-  SCR_CUT,
   SCR_DEAL,
   SCR_GATHER,    // cards return to the deck
   SCR_SPREAD,
@@ -37,7 +36,6 @@ enum Screen : uint8_t {
 
 static const uint32_t BOOT_MS = 2900;
 static const uint32_t SHUFFLE_MS = 2400;
-static const uint32_t CUT_MS = 700;
 static const uint32_t DEAL_MS = 1100;
 static const uint32_t GATHER_MS = 1000;
 static const uint32_t FLIP_MS = 420;
@@ -114,9 +112,12 @@ static void openInner() {
   go(SCR_INNER);
 }
 
+// The cut happens on release. It has no screen of its own any more: the deck
+// riffles during the hold, so a separate cut animation only delayed the deal.
 static void startCut() {
   newReading();
-  go(SCR_CUT);
+  dealt = 0;
+  go(SCR_DEAL);
 }
 
 static void adjustSetting() {
@@ -260,11 +261,6 @@ void loop() {
     } else if (in.aLong) {
       go(SCR_MENU);
     }
-    break;
-
-  case SCR_CUT:
-    uiCut(age / (float)CUT_MS);
-    if (age >= CUT_MS) { dealt = 0; go(SCR_DEAL); }
     break;
 
   case SCR_DEAL: {

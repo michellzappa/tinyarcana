@@ -7,18 +7,29 @@ cards say to each other. Offline. No account, no API, no cloud.
 
 ## The reading
 
-1. **Shuffle.** Hold the deck. The chip's hardware random number generator
-   (thermal and RF noise, fed through the SAR ADC entropy source) is stirred
-   with your touch: where your finger sits, how long it stays, how it moves.
-2. **Cut.** Release. The deck splits and re-stacks.
-3. **Deal.** Three cards slide out, face down: Past, Present, Future.
-4. **Turn.** Tap a card to flip it.
-5. **Read.** Tap a turned card: it fills the screen. Tap it away for its
+1. **Shuffle.** Hold the deck. It riffles under your thumb, and a ring of
+   twenty-one segments fills at random around the rim, one per numbered
+   trump. The chip's hardware random number generator (thermal and RF noise,
+   fed through the SAR ADC entropy source) is stirred with your touch: where
+   your finger sits, how long it stays, how it moves. The same entropy picks
+   the order the ring fills in, so no two shuffles look alike either.
+2. **Deal.** Release. The cut happens on release and three cards slide out,
+   face down: Past, Present, Future. There is no separate cut animation; the
+   deck has been shuffling in your hand the whole time.
+3. **Turn.** Tap a card to flip it.
+4. **Read.** Tap a turned card: it fills the screen. Tap it away for its
    meaning in that position, under the card's Golden Dawn glyph: a zodiac
    sign, a planet, or an elemental triangle for the Fool, the Hanged Man and
    Judgement. The glyphs are drawn from stroke tables (`src/glyphs.cpp`), so
    no symbol font is embedded.
-6. **Go inside.** PWR opens the inner reading.
+5. **Go inside.** PWR opens the inner reading.
+
+The screens say very little. The one instruction on the deck disappears as
+soon as you turn a card, and the reading pages carry none at all: a page of
+prose on a round display has no room to spare, and the help screen in the menu
+documents every control. The boot screen counts the twenty-one numbered
+trumps around the rim and names the device; the Fool is unnumbered, so he is
+the dot at the centre rather than a mark on the wheel.
 
 From the deck screen, PWR opens the menu. Settings persist across boots and
 currently cover the active deck, brightness, and the underlying
@@ -75,8 +86,8 @@ The round board stores one 168x295 RGB565 bitmap per card and samples it for
 both the spread and full-card views. The shared source size avoids duplicating
 every image and leaves room for about five Major-only decks in LittleFS.
 
-If upload fails with the port busy, Headroom's LaunchAgent owns it. See
-[AGENTS.md](AGENTS.md).
+If upload fails with the port busy, another process on the machine has the
+serial port open. `lsof /dev/cu.usbmodem*` names it.
 
 ## Layout
 
@@ -91,6 +102,7 @@ src/
   cards.*           LittleFS card bitmaps, rounded blits, procedural back
   text.*            anti-aliased Lora text, wrapping, paging
   entropy.*         hardware RNG + touch stirring
+  glyphs.*          Golden Dawn symbols drawn from stroke tables
   board_display.*   CO5300 round panel and AXP2101
   board_input.*     BOOT, PWR and CST9217 touch
   fonts/            generated glyph tables
@@ -98,6 +110,8 @@ assets/cards/             Rider-Waite-Smith majors (public domain)
 assets/decks/             additional Major-only deck asset instructions
 assets/fonts/             Lora (SIL OFL)
 scripts/build_assets.py   cards + fonts
+scripts/preview_read.py   meaning-page layout preview (mirrors ui.cpp)
+tools/                    host tools for the on-device reading model
 data/<env>/               generated LittleFS payload (gitignored)
 ```
 

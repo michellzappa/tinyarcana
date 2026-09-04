@@ -38,7 +38,6 @@ void uiDeck(uint32_t nowMs, bool holding, float progress);
 void uiMenu(uint8_t selected);
 void uiHelp();
 void uiSettings(const AppSettings &settings, uint8_t selected);
-void uiCut(float p);
 void uiDeal(float p);
 // The reverse: the three cards fly back into the stack, face down.
 void uiGather(float p);
