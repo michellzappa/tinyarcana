@@ -38,6 +38,17 @@ static const uint32_t BOOT_MS = 2900;
 static const uint32_t SHUFFLE_MS = 2400;
 static const uint32_t DEAL_MS = 1100;
 static const uint32_t GATHER_MS = 1000;
+// A single card is a quick question, so it gets a quick ritual: a short press
+// rather than a hold, and one card has no stagger to wait for on the way out.
+// The deck screen draws at about four frames a second, so 1000 ms is roughly
+// four frames of riffle. Shorter than that and nothing moves at all.
+static const uint32_t DEAL_ONE_MS = 300;
+static const uint32_t GATHER_ONE_MS = 300;
+static const uint32_t FLIP_ONE_MS = 300;
+// How long the back sits there before it turns itself over. Long enough to
+// register as a card arriving, short enough not to feel like a wait.
+static const uint32_t CARD_DWELL_MS = 260;
+
 static const uint32_t FLIP_MS = 420;
 static const uint32_t ZOOM_MS = 380;
 
@@ -46,6 +57,8 @@ static uint32_t enterMs = 0;
 static bool fsOk = false, touchOk = false;
 
 static Spread spread = {{{0, 0, 0}}, 0, {false, false, false}, 3};
+static uint32_t dealMs() { return spread.count == 1 ? DEAL_ONE_MS : DEAL_MS; }
+static uint32_t gatherMs() { return spread.count == 1 ? GATHER_ONE_MS : GATHER_MS; }
 static int8_t flipSlot = -1;
 static uint8_t cardPos = 0;
 static uint8_t innerPage = 0, innerPages = 1;
@@ -216,6 +229,13 @@ void loop() {
     break;
 
   case SCR_DECK: {
+    // A single card is picked, not shuffled: one touch on the deck draws it.
+    // The touch still stirs the entropy, the same as a hold would.
+    if (appSettings.singleCard && in.tap && uiDeckHit(in.x, in.y)) {
+      entropyStir(((uint32_t)in.x << 16) | (uint16_t)in.y, now);
+      startCut();
+      break;
+    }
     if (in.touchBegan && uiDeckHit(in.x, in.y)) {
       holding = true;
       holdStart = now;
@@ -282,11 +302,11 @@ void loop() {
     break;
 
   case SCR_DEAL: {
-    const float p = age / (float)DEAL_MS;
+    const float p = age / (float)dealMs();
     // One tick as each card leaves the deck (uiDeal starts card i at i*0.22).
     while (dealt < spread.count && p >= dealt * 0.22f) dealt++;
     uiDeal(p, spread.count);
-    if (age >= DEAL_MS) {
+    if (age >= dealMs()) {
       // One card has no spread to land on. It arrives face down, full size.
       if (spread.count == 1) { cardPos = 0; go(SCR_CARD); }
       else go(SCR_SPREAD);
@@ -295,10 +315,10 @@ void loop() {
   }
 
   case SCR_GATHER: {
-    const float p = age / (float)GATHER_MS;
+    const float p = age / (float)gatherMs();
     while (dealt < spread.count && p >= dealt * 0.22f) dealt++;
     uiGather(p, spread.count);
-    if (age >= GATHER_MS) go(SCR_DECK);
+    if (age >= gatherMs()) go(SCR_DECK);
     break;
   }
 
@@ -330,10 +350,10 @@ void loop() {
   }
 
   case SCR_FLIP: {
-    const float p = age / (float)FLIP_MS;
+    const float p = age / (float)(spread.count == 1 ? FLIP_ONE_MS : FLIP_MS);
     if (spread.count == 1) uiCardFlip(spread, 0, p < 1 ? p : 1);
     else uiSpread(spread, flipSlot, p < 1 ? p : 1);
-    if (age >= FLIP_MS) {
+    if (age >= (spread.count == 1 ? FLIP_ONE_MS : FLIP_MS)) {
       spread.revealed[flipSlot] = true;
       flipSlot = -1;
       go(spread.count == 1 ? SCR_CARD : SCR_SPREAD);
@@ -350,6 +370,12 @@ void loop() {
 
   case SCR_CARD:
     uiCardBig(spread, cardPos);
+    // A single card turns itself after a beat. Nothing else can happen on
+    // this screen, so asking for a tap only adds a step.
+    if (spread.count == 1 && !spread.revealed[cardPos] && age >= CARD_DWELL_MS) {
+      startFlip(cardPos);
+      break;
+    }
     if ((in.tap || in.aPressed) && !spread.revealed[cardPos]) startFlip(cardPos);
     else if (in.tap || in.aPressed) go(SCR_MEANING);
     else if (in.swipeLeft) { if (cardPos + 1 < spread.count) openCard(cardPos + 1); else backToSpread(); }

@@ -329,7 +329,13 @@ void uiDeck(uint32_t nowMs, bool holding, float progress) {
   cardDrawBack((int16_t)(DECK_CX - 3 + jx + riffle), (int16_t)(DECK_Y - 3 + jy + riffleY),
                DECK_W, DECK_H, 1.0f, glow);
 
-  if (holding) {
+  // A single card is picked, not shuffled and cut. The framing changes with
+  // the setting rather than the spread, because no reading exists yet.
+  const bool one = appSettings.singleCard;
+  if (one) {
+    // One card is picked with a touch, so there is no charge to show.
+    hint("TOUCH TO PICK A CARD");
+  } else if (holding) {
     rimFill(progress);
     hint(progress >= 1.0f ? "RELEASE TO CUT" : "SHUFFLING . . .");
   } else {
@@ -438,14 +444,18 @@ void uiDeal(float p, uint8_t count) {
   gfx->clear(COL_BG);
   // No deck under the spread: the first card is the deck, and the moment
   // it moves the stack behind it is gone.
+  // One card goes straight to the size and place the big view uses, so the
+  // hand-off is invisible. Three cards go to their slots at spread size.
+  const CardSize sz = count == 1 ? CARD_L : CARD_S;
+  const int16_t endY = count == 1 ? (int16_t)((SCR_H - CARD_H[CARD_L]) / 2) : SLOT_Y;
   for (uint8_t i = 0; i < count; i++) {
     const float start = i * 0.22f;
     const float u = easeOut((p - start) / 0.5f);
     if (u <= 0) continue;
     const int16_t cx = (int16_t)(DECK_CX + (slotCx(count, i) - DECK_CX) * u);
-    const int16_t y = (int16_t)(DECK_Y + (SLOT_Y - DECK_Y) * u);
-    const int16_t w = (int16_t)(DECK_W + (CARD_W[CARD_S] - DECK_W) * u);
-    const int16_t h = (int16_t)(DECK_H + (CARD_H[CARD_S] - DECK_H) * u);
+    const int16_t y = (int16_t)(DECK_Y + (endY - DECK_Y) * u);
+    const int16_t w = (int16_t)(DECK_W + (CARD_W[sz] - DECK_W) * u);
+    const int16_t h = (int16_t)(DECK_H + (CARD_H[sz] - DECK_H) * u);
     cardDrawBack(cx, y, w, h, 1.0f, 0.5f * (1 - u) + 0.15f);
   }
 }
@@ -457,10 +467,12 @@ void uiGather(float p, uint8_t count) {
     const float start = (count - 1 - i) * 0.22f;
     const float u = easeOut((p - start) / 0.5f);
     const int16_t sx = slotCx(count, (uint8_t)i);
+    const CardSize sz = count == 1 ? CARD_L : CARD_S;
+    const int16_t fromY = count == 1 ? (int16_t)((SCR_H - CARD_H[CARD_L]) / 2) : SLOT_Y;
     const int16_t cx = (int16_t)(sx + (DECK_CX - sx) * u);
-    const int16_t y = (int16_t)(SLOT_Y + (DECK_Y - SLOT_Y) * u);
-    const int16_t w = (int16_t)(CARD_W[CARD_S] + (DECK_W - CARD_W[CARD_S]) * u);
-    const int16_t h = (int16_t)(CARD_H[CARD_S] + (DECK_H - CARD_H[CARD_S]) * u);
+    const int16_t y = (int16_t)(fromY + (DECK_Y - fromY) * u);
+    const int16_t w = (int16_t)(CARD_W[sz] + (DECK_W - CARD_W[sz]) * u);
+    const int16_t h = (int16_t)(CARD_H[sz] + (DECK_H - CARD_H[sz]) * u);
     cardDrawBack(cx, y, w, h, 1.0f, 0.15f + 0.25f * u);
   }
 }
