@@ -130,9 +130,9 @@ order, which is the whole reason the engine formats its own strings instead of
 calling `snprintf`.
 
 A language may leave a deck untranslated. `langApply()` falls back per pack,
-not per language, so `pt-BR` with only `rws.json` shows Portuguese everywhere
-and English on the other two decks. The build prints which decks are still
-missing.
+not per language, so a language with only `rws.json` shows Portuguese
+everywhere and English on the other two decks. The build prints which decks are
+still missing. `pt-BR` is complete: UI plus all three decks.
 
 The settings screen lists whatever directories exist under `/lang`
 (`langList()`), so the firmware never carries a list of languages of its own.
@@ -147,9 +147,16 @@ python3 tools/fit_check.py --board round --jsonl --field text --max-pages 9 read
 
 `uiMeaning()` stops drawing after six lines and says nothing, so an over-long
 meaning loses its last sentence with no error anywhere. `meaning_fit.py` is the
-only thing that catches it. Measured 2026-09-05: English RWS runs to 5 of 6
-lines, **Portuguese RWS to 6 of 6**. Portuguese has no headroom left; re-run the
-gate after editing any `pt-BR` meaning.
+only thing that catches it. Worst case per deck, measured 2026-09-05:
+
+| deck | en | pt-BR |
+| --- | --- | --- |
+| rws | 5 of 6 | **6 of 6** |
+| gptarot | 4 of 6 | 4 of 6 |
+| marseille | 3 of 6 | 3 of 6 |
+
+**Portuguese RWS has no headroom left.** Re-run the gate after editing any
+`pt-BR` RWS meaning. The other five combinations have room.
 
 Hint lines are the other trap, and they have no gate. Measure them by hand
 against the chord. Three Portuguese hints overflowed on the first pass, and so
@@ -161,9 +168,16 @@ chord at baseline 447 and had been clipped since it was written. It is now
 after prepositions that contract with the article in Portuguese (`em o` -> `no`,
 `de o` -> `do`). The names therefore carry no article at all (`limiar`, not
 `o limiar`) and every template supplies the contracted form itself. That works
-only because all four bands are masculine singular, which was a choice made
-when writing them. A language needing two genders here writes two template
-sets; the engine does not grow a case system.
+only because all four bands are masculine singular in every deck, and that had
+to be chosen deliberately: GPTarot's "the first image" became `primeiro
+quadro`, not the natural `primeira imagem`, and Marseille's "the table of life"
+became `tabuleiro da vida`, not `mesa da vida`. A language needing two genders
+here writes two template sets; the engine does not grow a case system.
+
+Marseille's card names stay French in Portuguese, as everywhere, because the
+deck declares `nativeNames`. Its `name` fields in the JSON are never read; they
+are kept French so the file reads honestly. Its *deck* name does translate, to
+`Marselha`, because that is a label and not a card.
 
 ## Partition table
 
