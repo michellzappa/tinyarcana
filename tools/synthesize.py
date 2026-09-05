@@ -135,7 +135,9 @@ def check(reading, book_ngrams, fonts, lo, hi):
         return f"words={words}"
     if "\n" in reading.strip():
         return "multi-paragraph"
-    for board in ("round", "18"):
+    # Whatever boards fit_check knows about. The 1.8 was dropped when the
+    # project went round-only; naming boards here again would just rot.
+    for board in fit_check.BOARDS:
         _, pages = fit_check.layout(reading + "\n\n>x", board, fonts)
         if pages > 1:
             return f"{board}={pages}pages"
