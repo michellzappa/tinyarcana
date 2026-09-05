@@ -153,20 +153,13 @@ void cardDrawFace(uint8_t idx, CardSize sz, int16_t cx, int16_t y, float squash)
         // Asset-free decks still need a visible card while their artwork is
         // being sourced. This is deliberately a restrained geometric face,
         // not a substitute for a deck illustration.
-        const bool thoth = activeDeck && activeDeck->id &&
-                           strcmp(activeDeck->id, "thoth") == 0;
-        const uint16_t base = thoth ? RGB565(24, 20, 58) : RGB565(40, 36, 48);
-        const uint16_t accent = thoth ? RGB565(198, 142, 62) : RGB565(72, 64, 82);
-        const uint16_t glow = thoth ? RGB565(42, 104, 118) : RGB565(56, 50, 68);
+        const uint16_t base = RGB565(40, 36, 48);
+        const uint16_t accent = RGB565(72, 64, 82);
+        const uint16_t glow = RGB565(56, 50, 68);
         const int16_t mx = (int16_t)(dw / 2), my = (int16_t)(h / 2);
         const int32_t ex = dx - mx, ey = dy - my;
         const int32_t manhattan = abs(ex) + abs(ey);
         const int16_t band = (int16_t)(h / 18);
-        if (thoth && (manhattan < dw / 3 || (dx + dy + idx * 7) % (band > 2 ? band : 3) == 0))
-          row[px] = accent;
-        else if (thoth && (abs(ex - ey) < 2 || abs(ex + ey) < 2))
-          row[px] = glow;
-        else
           row[px] = base;
         continue;
       }

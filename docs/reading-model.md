@@ -41,21 +41,30 @@ paragraphs fit one page only 94% of the time against 100% for one. Write one.
 The plan was sized against a flash layout that no longer exists. Check all of
 this before quoting any of the old numbers.
 
-- **Flash is fully allocated.** `partitions.csv` is now app0 4 MB, spiffs
-  11.88 MB, and there is no gap. The 3.88 MB hole the model was originally
-  sized into is gone.
-- **The filesystem is full.** Read off the board on 2026-09-04:
-  `littlefs: 11764/12160 KB`, which is **396 KB free, 96.7% used**. Four deck
-  packs at about 2.08 MiB each have taken it. Firmware is 719 KB of the 4 MB
-  app partition.
-- So there is essentially one place a model can come from: **app0**. Shrinking
-  it to 1 MB frees 3 MB against a 719 KB firmware. A 4.6 MB model needs
-  another 1.6 MB on top of that, and the only source is a deck. **Fitting the
-  model means shipping one fewer deck, or making the model smaller.** That is
-  a product decision, not a build one, and it should be made before any
-  training starts rather than discovered at flashing time.
-- Check the free figure yourself before planning around it; it moves every
-  time a deck is added. The boot log prints it on every reset.
+- **Flash is fully allocated.** `partitions.csv` is app0 4 MB, spiffs 11.88 MB,
+  bootloader and nvs 0.06 MB, coredump 0.06 MB. Sixteen megabytes, no gap. The
+  3.88 MB hole the model was originally sized into is gone, so a model
+  partition has to come out of app0 or spiffs.
+- **The budget, measured on the board 2026-09-04** after removing a stale
+  pre-refactor `cards/` directory that nothing had read since decks landed:
+
+  | | |
+  | --- | --- |
+  | Firmware in app0 | 0.67 MB, leaving 3.33 MB unused |
+  | Data in spiffs | 6.58 MB, leaving 5.30 MB unused |
+  | One card, 168x295 RGB565 | 99,120 B |
+  | One 22-card deck | about 2.13 MB |
+
+  Reclaimable: **3.00 MB** by shrinking app0 to 1 MB, **4.33 MB** by shrinking
+  spiffs to the data plus 1 MB of slack. **7.33 MB in total, with all three
+  decks kept.** Dropping a deck would add 2.15 MB and is not needed.
+
+  A 4.6 MB barista-class model fits with 2.7 MB to spare, all three decks
+  kept.
+- **Read the figure, do not trust it.** The boot log prints
+  `littlefs: <used>/<total> KB` on every reset, and it moves whenever a deck is
+  added or the asset layout changes. It read 11764 KB before that stale
+  directory went and 6740 KB after.
 - **The PLE table must be memory-mapped, so it needs its own raw partition.**
   A LittleFS file cannot be mmap'd. This is a `partitions.csv` change plus a
   full `uploadfs`, not a file you can drop in.
@@ -108,8 +117,8 @@ and the speed advantage goes with it.
    not need a cloud GPU.
 6. **Quantise to INT4** and verify the C runtime matches the trained model on
    the host before it goes near the board.
-7. **Repartition and integrate.** See the flash note above. Decide what gives
-   way to the model partition before this point, not at it.
+7. **Repartition and integrate.** Shrink app0 and spiffs per the budget above,
+   add a raw partition for the PLE table, then a full `uploadfs`.
 8. **Stream it.** 50 words is about 70 tokens, roughly seven seconds at
    10 tok/s. Stream word by word into the single page so the wait is the
    ritual rather than a pause. Do not paginate: at one page there is nothing
@@ -117,11 +126,11 @@ and the speed advantage goes with it.
 
 ## Open questions
 
-- **What gives way to the model.** A 4.6 MB model does not fit alongside four
-  deck packs. Either one deck goes, or the model is built smaller than the
-  barista reference. Smaller is worth costing before it is ruled out: the
-  output vocabulary here is around 1500 classes against barista's 854 but the
-  reading is 50 words, so the sizing is not a straight copy.
+- **How big the model should actually be.** 4.6 MB fits, so size is no longer
+  forced by storage. It is still worth costing a smaller one: the output
+  vocabulary here is around 1500 classes against barista's 854, but the reading
+  is 50 words rather than a conversation, so the sizing is not a straight copy
+  in either direction and nobody has worked it out.
 - Local or API for the corpus. Step 2 answers it.
 - Whether the spare M4 is base or Pro. Roughly 2x throughput between them.
 - Whether to keep Lotterhand, 103K words with its leading capitals gone.

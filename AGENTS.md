@@ -73,6 +73,14 @@ not used anywhere.
 The LittleFS image only needs re-uploading when the cards change. Firmware
 iterations are `pio run -t upload` alone.
 
+**`build_assets.py` writes `data/<env>/decks/`, and nothing prunes what is no
+longer written.** The pre-deck layout put cards in `data/<env>/cards/`, and
+that directory survived the refactor: 4.9 MB of files no code opens, uploaded
+to the board on every `uploadfs`. It read as a filesystem at 96.7% full and
+sent the model budget down a blind alley. The firmware only ever opens
+`/decks/<id>/...`. If the boot log's `littlefs: <used>/<total> KB` looks larger
+than the deck packs justify, list `data/<env>/` before believing it.
+
 ## Partition table
 
 `partitions.csv`: 4 MB app (single ota_0, huge_app style), about 11.9 MiB

@@ -42,9 +42,11 @@ from an arc across positions, the elements between neighbours, curated pairs
 and a digit-reduced sum, and one card has none of them. Touch to a face-up
 card is about 860 ms against roughly 3.5 seconds for the three-card draw.
 
-Rider-Waite-Smith is the first and default deck. GPTarot, Thoth, and Marseille
-are also available as 22-card Major-only options; each carries its own card
-meanings, numbering, relationship prose, and reading voice.
+Rider-Waite-Smith is the first and default deck. GPTarot and Marseille are
+also available as 22-card Major-only options; each carries its own card
+meanings, numbering, relationship prose, and reading voice. A deck needs
+artwork to earn its place: a semantics-only deck shows procedural placeholders
+and costs firmware for nothing.
 
 In the menu, BOOT moves between items and PWR opens one. In Settings, BOOT
 moves between rows, PWR changes the selected value, and tapping the bottom
@@ -113,7 +115,7 @@ src/
   settings.*        persistent NVS settings
   ui.*              every screen, all painted into one PSRAM frame
   tarot_data.h      RWS card meanings and shared data types
-  deck_content.*    GPTarot, Thoth, and Marseille meanings and pair prose
+  deck_content.*    GPTarot and Marseille meanings and pair prose
   tarot_engine.*    inner reading composer
   cards.*           LittleFS card/back bitmaps, rounded blits, procedural fallback
   text.*            anti-aliased Lora text, wrapping, paging
@@ -136,15 +138,13 @@ data/<env>/               generated LittleFS payload (gitignored)
 
 The included Rider-Waite-Smith artwork is identified as public domain in
 [LICENSE](LICENSE). The bundled Marseille pack is the CC0 Jean Dodal-attributed
-Major Arcana pack credited there. Any additional Thoth or other deck artwork
+Major Arcana pack credited there. Any additional deck artwork
 must be reviewed separately: a particular scan, edition, restoration, or
 digital redraw may still be protected. Where an additional deck is included
 for private prototyping, criticism, scholarship, or comparison, its use is
 intended to rely only on a fair-use/fair-dealing rationale where that doctrine
 applies. Fair use is jurisdiction-specific and is not blanket permission to
-redistribute commercial deck artwork. The Thoth option currently contains
-semantic data only and deliberately includes no Crowley-Harris paintings.
-Confirm the applicable rights and add the appropriate credit or permission
+redistribute commercial deck artwork. Confirm the applicable rights and add the appropriate credit or permission
 before distributing a build containing additional artwork.
 
 ## Licence

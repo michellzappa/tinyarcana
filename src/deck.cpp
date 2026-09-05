@@ -130,13 +130,6 @@ const DeckDefinition DECKS[] = {
     {"gptarot", "GPTarot", "gptarot", "back", GPTAROT_CARDS,
      GPTAROT_GLYPHS, GPTAROT_VALUES, GPTAROT_PAIRS, GPTAROT_PAIR_COUNT,
      MAJOR_COUNT, &GPTAROT_READING_STYLE},
-    // Thoth semantics are installed now. Its canonical Crowley-Harris
-    // paintings are not redistributed here; a null assetDir makes the
-    // firmware use the procedural face placeholder until licensed artwork is
-    // supplied.
-    {"thoth", "Thoth", nullptr, nullptr, THOTH_CARDS, THOTH_GLYPHS,
-     THOTH_VALUES, THOTH_PAIRS, THOTH_PAIR_COUNT, MAJOR_COUNT,
-     &THOTH_READING_STYLE},
     {"marseille", "Marseille", "marseille", nullptr, MARSEILLE_CARDS,
      nullptr, MARSEILLE_VALUES, MARSEILLE_PAIRS, MARSEILLE_PAIR_COUNT,
      MAJOR_COUNT, &MARSEILLE_READING_STYLE},
