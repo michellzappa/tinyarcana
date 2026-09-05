@@ -56,6 +56,7 @@ void uiSpread(const Spread &s, int8_t flipping, float flipPhase);
 void uiZoom(const Spread &s, uint8_t pos, float p);
 // One card as large as the glass allows, then its meaning as centered text.
 void uiCardBig(const Spread &s, uint8_t pos);
+void uiCardFlip(const Spread &s, uint8_t pos, float phase);
 void uiMeaning(const Spread &s, uint8_t pos);
 // Lays out the composed text (mutated in place). Returns page count.
 uint8_t uiInnerPrepare(char *text);

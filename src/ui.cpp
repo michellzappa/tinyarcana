@@ -553,13 +553,30 @@ void uiCardBig(const Spread &s, uint8_t pos) {
   gfx->clear(COL_BG);
   const uint8_t idx = s.reading.card[pos];
   const int16_t y = (int16_t)((SCR_H - CARD_H[CARD_L]) / 2);
-  cardDrawFace(idx, CARD_L, CX, y, 1.0f);
+  const bool up = s.revealed[pos];
+  if (up) cardDrawFace(idx, CARD_L, CX, y, 1.0f);
+  else cardDrawBack(CX, y, CARD_W[CARD_L], CARD_H[CARD_L], 1.0f, 0.2f);
 #if UI_ROUND
-  char label[24];
-  upper(label, sizeof label, POSITION_NAME[slotTextPos(s.count, pos)]);
-  txtCenter(lora_small, label, CX, 26, COL_GOLD, 3);
-  txtCenter(lora_small, "TAP TO READ", CX, HINT_Y, COL_DIM, 1);
+  if (s.count != 1) {
+    char label[24];
+    upper(label, sizeof label, POSITION_NAME[slotTextPos(s.count, pos)]);
+    txtCenter(lora_small, label, CX, 26, COL_GOLD, 3);
+  }
+  txtCenter(lora_small, up ? "TAP TO READ" : "TAP TO TURN", CX, HINT_Y, COL_DIM, 1);
 #endif
+}
+
+// The single-card turn, at full size. The spread's flip squashes a small card
+// in its slot; this does the same thing in the middle of the screen, because
+// a one-card draw never visits the spread.
+void uiCardFlip(const Spread &s, uint8_t pos, float phase) {
+  gfx->clear(COL_BG);
+  const uint8_t idx = s.reading.card[pos];
+  const int16_t y = (int16_t)((SCR_H - CARD_H[CARD_L]) / 2);
+  if (phase < 0.5f)
+    cardDrawBack(CX, y, CARD_W[CARD_L], CARD_H[CARD_L], 1.0f - phase * 2.0f, 0.6f);
+  else
+    cardDrawFace(idx, CARD_L, CX, y, (phase - 0.5f) * 2.0f);
 }
 
 // ---------------- Meaning ----------------

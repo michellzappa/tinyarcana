@@ -105,10 +105,18 @@ static void zoomCard(uint8_t pos) {
 }
 
 static void backToSpread() {
-  go(SCR_SPREAD);
+  // With one card there is nothing behind it, so backing out gathers instead.
+  if (spread.count == 1) { dealt = 0; go(SCR_GATHER); }
+  else go(SCR_SPREAD);
 }
 
 static void openInner() {
+  // The composer reads an arc across three positions, the elements between
+  // neighbours, curated pairs and a digit-reduced sum. A single card has none
+  // of those, so there is no inner reading to open. Guarded here rather than
+  // at each caller: PWR reaches this from the spread, the card and the
+  // meaning page.
+  if (spread.count != 3) return;
   if (!innerReady) {
     tarotCompose(deckById(spread.deck), spread.reading, innerText,
                  sizeof innerText);
@@ -278,7 +286,11 @@ void loop() {
     // One tick as each card leaves the deck (uiDeal starts card i at i*0.22).
     while (dealt < spread.count && p >= dealt * 0.22f) dealt++;
     uiDeal(p, spread.count);
-    if (age >= DEAL_MS) go(SCR_SPREAD);
+    if (age >= DEAL_MS) {
+      // One card has no spread to land on. It arrives face down, full size.
+      if (spread.count == 1) { cardPos = 0; go(SCR_CARD); }
+      else go(SCR_SPREAD);
+    }
     break;
   }
 
@@ -309,7 +321,7 @@ void loop() {
     if (in.bPressed) {
       // The inner reading needs an arc, elements, a pair and a quintessence.
       // A single card has none of those, so PWR only turns it.
-      if (allRevealed()) { if (spread.count == 3) openInner(); }
+      if (allRevealed()) openInner();
       else {
         for (uint8_t i = 0; i < spread.count; i++) if (!spread.revealed[i]) { startFlip(i); break; }
       }
@@ -319,11 +331,12 @@ void loop() {
 
   case SCR_FLIP: {
     const float p = age / (float)FLIP_MS;
-    uiSpread(spread, flipSlot, p < 1 ? p : 1);
+    if (spread.count == 1) uiCardFlip(spread, 0, p < 1 ? p : 1);
+    else uiSpread(spread, flipSlot, p < 1 ? p : 1);
     if (age >= FLIP_MS) {
       spread.revealed[flipSlot] = true;
       flipSlot = -1;
-      go(SCR_SPREAD);
+      go(spread.count == 1 ? SCR_CARD : SCR_SPREAD);
     }
     break;
   }
@@ -337,7 +350,8 @@ void loop() {
 
   case SCR_CARD:
     uiCardBig(spread, cardPos);
-    if (in.tap || in.aPressed) go(SCR_MEANING);
+    if ((in.tap || in.aPressed) && !spread.revealed[cardPos]) startFlip(cardPos);
+    else if (in.tap || in.aPressed) go(SCR_MEANING);
     else if (in.swipeLeft) { if (cardPos + 1 < spread.count) openCard(cardPos + 1); else backToSpread(); }
     else if (in.swipeRight) { if (cardPos > 0) openCard(cardPos - 1); else backToSpread(); }
     if (in.bPressed) openInner();
