@@ -1,0 +1,289 @@
+{
+  "deck": "rws",
+  "name": "Rider-Waite-Smith",
+  "cards": [
+    {
+      "name": "O Louco",
+      "ruler": "Ar",
+      "keywords": "começos, confiança, o salto",
+      "essence": "O Louco é o passo dado antes de o chão estar provado.",
+      "past": "Você começou isso sem mapa, por confiança e não por prova. Essa inocência foi o que tornou o começo possível. Também significa que parte do que você carrega nunca foi examinada.",
+      "present": "Você está na beirada, a bagagem leve, o cão latindo nos seus calcanhares. O passo à sua frente não pode ser dado com cuidado. Só pode ser dado.",
+      "future": "Algo recomeça, e recomeça limpo. Não espere se sentir pronto. A prontidão chega depois do passo, nunca antes.",
+      "question": "O que você faria se nada precisasse ser terminado primeiro?"
+    },
+    {
+      "name": "O Mago",
+      "ruler": "Mercúrio",
+      "keywords": "vontade, habilidade, foco",
+      "essence": "O Mago tem cada ferramenta sobre a mesa e sabe que as ferramentas não são o ponto.",
+      "past": "Você tinha o que era preciso e usou. Habilidade e coragem trouxeram você até aqui. Note quanto desse crédito você entregou à sorte.",
+      "present": "Tudo o que se exige já está ao alcance. O trabalho agora é atenção: uma mão para cima, uma para baixo, nenhum movimento desperdiçado.",
+      "future": "Vão pedir que você aja, não que se prepare. Quando a hora chegar, as ferramentas serão as que você tem agora.",
+      "question": "Qual das suas ferramentas você finge não possuir?"
+    },
+    {
+      "name": "A Sacerdotisa",
+      "ruler": "a Lua",
+      "keywords": "intuição, quietude, o não dito",
+      "essence": "A Sacerdotisa mantém o pergaminho meio escondido porque o resto não é para palavras.",
+      "past": "Algo foi sabido e não foi dito. Você sentiu o formato disso muito antes de alguém dar nome. Confie mais nessa memória do que no registro.",
+      "present": "Nem tudo aqui quer ser resolvido. Fique com o que você já sabe. A resposta está atrás do véu, não nas perguntas que você repete.",
+      "future": "A clareza virá do silêncio, não de mais informação. Abra espaço para ela. O que você ainda não sabe dizer vai se dizer sozinho.",
+      "question": "O que você já sabe e não se permitiu ouvir?"
+    },
+    {
+      "name": "A Imperatriz",
+      "ruler": "Vênus",
+      "keywords": "abundância, cuidado, crescimento",
+      "essence": "A Imperatriz não constrói. Ela cultiva, e deixa o campo trabalhar.",
+      "past": "Você foi sustentado por algo generoso: uma pessoa, um lugar, uma estação farta. Isso moldou o seu senso do que é normal. Nem todo mundo teve isso.",
+      "present": "Este é tempo de cuidar, não de forçar. O que você alimentar vai crescer. O que você abandonar também, na direção dele.",
+      "future": "Algo amadurece. Pode demorar mais do que você queria e chegar mais cheio do que você esperava. Esteja lá para receber.",
+      "question": "O que você está alimentando, e é disso que você quer mais?"
+    },
+    {
+      "name": "O Imperador",
+      "ruler": "Áries",
+      "keywords": "estrutura, autoridade, limites",
+      "essence": "O Imperador fica parado porque o trono é o trabalho.",
+      "past": "Uma ordem foi imposta, por você ou sobre você. Ela deu um contorno e deu paredes. As duas coisas seguem de pé.",
+      "present": "Alguém tem que segurar a linha, e é você. Diga os termos com clareza. Um limite dito uma vez, claro, vale mais que uma regra vigiada para sempre.",
+      "future": "Vão pedir que você lidere, ou que responda a quem lidera. Decida agora que tipo de autoridade você consegue respeitar.",
+      "question": "Onde a sua estrutura protege você, e onde ela só mantém você sentado?"
+    },
+    {
+      "name": "O Hierofante",
+      "ruler": "Touro",
+      "keywords": "tradição, ensino, pertencer",
+      "essence": "O Hierofante entrega o que funcionou antes e pede que você leve adiante.",
+      "past": "Você aprendeu as regras com alguém que acreditava nelas. Parte desse ensino ainda serve. Parte era dessa pessoa, não sua.",
+      "present": "Você está dentro de uma instituição, uma linhagem ou um hábito mais velho que você. Pergunte para que serve antes de decidir se fica.",
+      "future": "Um mestre, um grupo ou uma tradição está a caminho. Vão oferecer pertencimento. Confira o preço na entrada, não na saída.",
+      "question": "Qual regra herdada você nunca testou de verdade?"
+    },
+    {
+      "name": "Os Enamorados",
+      "ruler": "Gêmeos",
+      "keywords": "escolha, união, valores",
+      "essence": "Os Enamorados são uma escolha que diz quem você é.",
+      "past": "Uma escolha foi feita com o coração, e ela fixou o rumo. Fosse uma pessoa ou um caminho, você escolheu como si mesmo, não como um papel.",
+      "present": "Duas coisas que você valoriza estão se separando. Você não vai conseguir manter as duas inteiras. Escolha a que torna você mais você.",
+      "future": "Um encontro ou uma decisão adiante vai pedir você inteiro. Leve isso. Meio sim é a única resposta que isso não aceita.",
+      "question": "O que você está escolhendo, e em lugar de quê?"
+    },
+    {
+      "name": "O Carro",
+      "ruler": "Câncer",
+      "keywords": "impulso, controle, vitória",
+      "essence": "O Carro anda porque segura dois puxões com uma só mão.",
+      "past": "Você atravessou na base da vontade. Funcionou, e custou. Parte da tensão que você sente agora são as rédeas que você nunca soltou.",
+      "present": "O impulso está do seu lado se você guiar. As duas esfinges querem estradas diferentes. Seu trabalho é direção, não velocidade.",
+      "future": "Você vai chegar aonde está indo. A pergunta que a estrada vai fazer é se você consegue chegar sem a armadura.",
+      "question": "Para onde você dirige, e o que dirige você?"
+    },
+    {
+      "name": "A Força",
+      "ruler": "Leão",
+      "keywords": "paciência, coragem, brandura",
+      "essence": "A Força fecha a boca do leão com a mão aberta.",
+      "past": "Você encontrou algo feroz com paciência em vez de força. Foi por isso que não devorou você. Não confunda essa brandura com fraqueza.",
+      "present": "A situação pede força. Dê firmeza no lugar. O leão não é seu inimigo; é a parte de você que está com medo.",
+      "future": "Vem aí uma prova de temperamento. Você vai passar ficando macio onde esperam que você seja duro.",
+      "question": "O que ruge em você porque ninguém acalmou?"
+    },
+    {
+      "name": "O Eremita",
+      "ruler": "Virgem",
+      "keywords": "solidão, busca, orientação",
+      "essence": "O Eremita sobe sozinho para que a luz seja vista lá de baixo.",
+      "past": "Você se recolheu, e precisava. Algo foi encontrado nessa solidão que a multidão não teria dado.",
+      "present": "Dê um passo atrás. O barulho não vai responder isso. Pegue a lamparina e vá onde é quieto o bastante para pensar.",
+      "future": "Aproxima-se um tempo de retiro, ou um guia que já andou por aqui. De todo jeito, a resposta está monte acima, não no vilarejo.",
+      "question": "O que você espera achar que só se acha sozinho?"
+    },
+    {
+      "name": "A Roda da Fortuna",
+      "ruler": "Júpiter",
+      "keywords": "giro, sorte, ciclos",
+      "essence": "A Roda gira quer você esteja segurando, quer não.",
+      "past": "A sorte se moveu e você se moveu com ela. Parte do que aconteceu nunca esteve nas suas mãos. Pare de distribuir culpa pelo clima.",
+      "present": "Você está no meio do giro. O que estava em cima está descendo, e o que estava embaixo está subindo. Afrouxe a mão e procure o padrão.",
+      "future": "Vem uma virada de sorte, e você não vai ver chegando. Posicione-se onde gostaria de estar quando a roda parar.",
+      "question": "Em que ciclo você está, e quantas vezes já esteve aqui?"
+    },
+    {
+      "name": "A Justiça",
+      "ruler": "Libra",
+      "keywords": "verdade, equilíbrio, consequência",
+      "essence": "A Justiça pesa o que foi feito, não o que foi pretendido.",
+      "past": "Algo foi resolvido, com justiça ou não. Um veredito foi dado. Você ainda vive dentro dos termos dele.",
+      "present": "Tome a situação exatamente como ela é, sem se lisonjear. Aqui os atos têm peso. Equilibre a balança antes que outro faça isso.",
+      "future": "A consequência chega. Se você foi reto, vai parecer alívio. Se não, este é o seu aviso.",
+      "question": "O que você decidiria se tivesse que ser justo com todos, inclusive com você?"
+    },
+    {
+      "name": "O Enforcado",
+      "ruler": "Água",
+      "keywords": "suspensão, entrega, outro ângulo",
+      "essence": "O Enforcado é a única figura do baralho que está sorrindo.",
+      "past": "Você ficou preso no lugar e não conseguiu tocar as coisas adiante. Olhando para trás, a pausa ensinou o que forçar nunca ensinaria.",
+      "present": "Nada vai se mover empurrando. Pare de empurrar. Deixe-se pendurado até o mundo virar do lado certo.",
+      "future": "Vem um atraso, e ele não é castigo. O que você vê de cabeça para baixo vai ser a vista verdadeira.",
+      "question": "O que pareceria diferente se você parasse de brigar com a posição em que está?"
+    },
+    {
+      "name": "A Morte",
+      "ruler": "Escorpião",
+      "keywords": "fim, soltura, transformação",
+      "essence": "A Morte limpa o campo para que outra coisa possa ser plantada.",
+      "past": "Algo acabou, por inteiro. Não houve como negociar. Tudo o que você é agora cresceu no espaço que sobrou.",
+      "present": "Um fim está aqui. Deixe que seja completo. O luto é real, e o espaço que ele abre também é.",
+      "future": "Vem um encerramento, e ele não vai ser gentil. Não se agarre. O que sobreviver será o que era mesmo seu.",
+      "question": "O que você mantém vivo que já terminou?"
+    },
+    {
+      "name": "A Temperança",
+      "ruler": "Sagitário",
+      "keywords": "mistura, paciência, o meio",
+      "essence": "A Temperança verte de uma taça a outra até nenhuma ficar vazia.",
+      "past": "Você achou um meio-termo quando os extremos estavam altos. Fosse o que fosse, você misturou até dar liga.",
+      "present": "Nada aqui precisa ser tudo ou nada. Misture, ajuste, prove. A medida certa se acha vertendo devagar.",
+      "future": "O equilíbrio vem, mas por prática, não por chegada. Mantenha as duas taças em movimento e você não derrama.",
+      "question": "Quais duas coisas na sua vida esperam ser misturadas?"
+    },
+    {
+      "name": "O Diabo",
+      "ruler": "Capricórnio",
+      "keywords": "prisão, apetite, a corrente que você segura",
+      "essence": "As correntes do Diabo estão frouxas. As figuras não perceberam.",
+      "past": "Algo prendeu você com a sua concordância. Um hábito, um acordo, uma pessoa. Você chamou isso de necessário. Olhe o que custou.",
+      "present": "Você está preso, e a corrente está bamba. Isso não é sobre um vilão. É sobre o apetite que você continua alimentando.",
+      "future": "Tentação adiante, vestida de segurança. Você vai poder ir embora. Se vai é a prova inteira.",
+      "question": "O que você chama de jaula e poderia simplesmente largar?"
+    },
+    {
+      "name": "A Torre",
+      "ruler": "Marte",
+      "keywords": "colapso, revelação, mudança súbita",
+      "essence": "A Torre cai porque foi erguida sobre a coisa errada.",
+      "past": "Algo veio abaixo, forte e rápido. Pareceu desastre. Também foi o fim de uma estrutura que não teria se sustentado.",
+      "present": "O chão está se mexendo. Não reconstrua ainda. Deixe a coisa falsa cair inteira para você ver o que era real embaixo.",
+      "future": "Vem um choque, e ele vai poupar seu tempo. O que quebra já estava quebrado. Segure o que não quebra.",
+      "question": "O que você escora e ficaria mais livre sem?"
+    },
+    {
+      "name": "A Estrela",
+      "ruler": "Aquário",
+      "keywords": "esperança, renovação, abertura",
+      "essence": "A Estrela devolve a água à lagoa sem nada a esconder.",
+      "past": "Depois de um tempo duro, algo se abriu. A esperança voltou, quieta. Esse reservatório ainda está aí quando você precisar.",
+      "present": "Você tem permissão de esperar de novo. Seja aberto sobre o que quer. Não há armadura nessa figura e não precisa haver em você.",
+      "future": "Cura adiante, e um senso mais claro do que você veio fazer. Confie mesmo que chegue sem prova.",
+      "question": "O que você quer, se disser sem se proteger?"
+    },
+    {
+      "name": "A Lua",
+      "ruler": "Peixes",
+      "keywords": "ilusão, medo, o caminho incerto",
+      "essence": "A Lua ilumina um caminho que parece outro de manhã.",
+      "past": "Você atravessou um tempo de não saber o que era real. O medo pintou as sombras. Parte do que você concluiu ali era o escuro falando.",
+      "present": "As coisas não são o que parecem. Não decida grande nessa luz. Anote o que assusta você e espere o sol.",
+      "future": "Confusão adiante, ou uma verdade que se esconde. Vá devagar. O caminho segue mesmo onde você não enxerga.",
+      "question": "Do que você tem medo que seja verdade e ainda não conferiu?"
+    },
+    {
+      "name": "O Sol",
+      "ruler": "o Sol",
+      "keywords": "clareza, alegria, vitalidade",
+      "essence": "O Sol não discute. Ele apenas torna tudo visível.",
+      "past": "Houve uma estação de calor e verdade simples. Você sabia quem era. Volte a essa memória quando a luz ficar fina.",
+      "present": "Isto está claro. Pare de procurar a pegadinha. Aproveite o que está na sua frente com você inteiro.",
+      "future": "Sucesso e calor estão chegando, e vão ser simples. Deixe que sejam simples. Não complique um dia bom.",
+      "question": "O que já está bom e você insiste em não confiar?"
+    },
+    {
+      "name": "O Julgamento",
+      "ruler": "Fogo",
+      "keywords": "acerto de contas, despertar, o chamado",
+      "essence": "O Julgamento é a trombeta que você não consegue fingir que não ouve.",
+      "past": "Você foi chamado, e respondeu. Algo antigo foi sepultado e você se ergueu dali mudado.",
+      "present": "O acerto de contas está aqui. Olhe o registro inteiro, perdoe o que se pode perdoar, e levante. Isto é convocação, não sentença.",
+      "future": "Vem um chamado que vai pedir que você se levante à altura. Você vai reconhecer quando ouvir. Não o faça repetir.",
+      "question": "O que chama você e você anda ocupado demais para atender?"
+    },
+    {
+      "name": "O Mundo",
+      "ruler": "Saturno",
+      "keywords": "conclusão, inteireza, chegada",
+      "essence": "O Mundo é a dança do fim que acaba sendo o começo.",
+      "past": "Algo foi concluído, e concluído bem. Você fechou um círculo. O que aprendeu ali é o chão em que você pisa.",
+      "present": "Você está quase inteiro. Termine. O último passo é o que faz todos os outros contarem.",
+      "future": "Chegada. Um ciclo fecha com tudo no lugar. Depois a dança começa de novo, um nível acima.",
+      "question": "O que significaria estar terminado, e o que você começaria depois?"
+    }
+  ],
+  "pairs": [
+    "A Torre antes da Estrela é a ordem clássica: colapso, depois cura. Vale aqui. O que caiu estava no caminho da água.",
+    "Esperança seguida de colapso. Aquilo em que você confiou é posto à prova. Fique com a água e deixe as paredes irem.",
+    "Um fim seguido de luz. A perda é a porta, não o quarto.",
+    "Prisão, depois ruptura. A corrente arrebenta porque tem que arrebentar, não porque você escolheu. Você ainda escolhe o que faz em seguida.",
+    "Uma união que se aperta e vira laço. Confira no que a escolha se tornou desde que você a fez.",
+    "Da prisão à escolha real. A corrente cede a uma decisão tomada em liberdade, que é mais difícil e melhor.",
+    "Confusão clareando em pleno dia. O que assustou você vai parecer menor de manhã.",
+    "Clareza sumindo na neblina. Aproveite o que está claro agora; você vai precisar da lembrança.",
+    "O Eremita e o Hierofante ensinam os dois, um sozinho e um acompanhado. Você está escolhendo como aprende.",
+    "O Mago e a Sacerdotisa são as duas mãos de um mesmo saber: fazer e saber. Use as duas.",
+    "A Imperatriz e o Imperador: crescimento e estrutura. A leitura pede os dois, em proporção.",
+    "A Roda e a Justiça: acaso e consequência. Nem tudo que acontece é merecido, e nem tudo que se merece acontece.",
+    "Entrega, depois soltura. O que você parou de combater agora pode terminar direito.",
+    "O chamado atendido e o círculo fechado. Há um final adequado disponível aqui. Aceite.",
+    "O Louco e o Mundo: o primeiro passo e o último, na mesma leitura. Isto é um ciclo inteiro, visto de uma vez.",
+    "A força cede à paciência. A segunda vitória é mais silenciosa que a primeira.",
+    "A paciência vira impulso. O que você domou agora puxa a carroça.",
+    "Dois fins numa tiragem só. O que está terminando está terminando por completo. Não negocie com isso.",
+    "A Sacerdotisa e a Lua dividem a água. Muita coisa aqui é sentida, não sabida. Deixe assim por um tempo.",
+    "O Imperador e a Torre: uma estrutura e a queda dela. Pergunte quais paredes sustentavam o peso.",
+    "A Temperança ao lado do Diabo: a taça medida e a sem fundo. A leitura é sobre apetite e o limite dele.",
+    "O Louco e a Morte viajam juntos: um começo que precisa de um fim para abrir espaço."
+  ],
+  "rowNames": [
+    "limiar",
+    "mundo exterior",
+    "mundo interior",
+    "mundo maior"
+  ],
+  "rowGlosses": [
+    "o passo antes de tudo",
+    "papéis, pessoas e as coisas que você pode tocar",
+    "as provas que a alma impõe a si mesma",
+    "forças maiores que qualquer vida"
+  ],
+  "arc": [
+    "Os números sobem de %1 a %2. Esta história avança para dentro da jornada, não de volta ao início. Cada carta está mais adiante que a anterior.\n",
+    "Os números descem de %1 a %2. A sequência corre ao contrário: o que vem pela frente é uma lição anterior, revista com o que você sabe agora.\n",
+    "%1 no presente é o cume. Passado e futuro ficam mais abaixo. Seja o que for, você está no meio disso agora, e a descida é mais curta que a subida foi.\n",
+    "%1 no presente é o ponto baixo entre duas cartas mais altas. A depressão é a passagem, não o destino.\n"
+  ],
+  "plane": [
+    "As três cartas vivem no %1: %2. A leitura inteira acontece num plano só, então a resposta está nesse plano também.\n",
+    "A leitura sobe do %1 para o %2. O que começou como %3 termina como %4.\n",
+    "A leitura desce do %1 para o %2. Algo abstrato está descendo ao chão, onde enfim pode ser manuseado.\n",
+    "Passado e futuro compartilham o %1; só o presente entra no %2. O desvio é o ponto.\n"
+  ],
+  "dominant": [
+    "O Fogo domina. Esta leitura corre na vontade e no impulso. Repare no que ela queima pelo caminho.\n",
+    "A Água domina. Sentimento e intuição carregam isto; os fatos vêm depois do que você percebe.\n",
+    "O Ar domina. Isto é sobre pensamento, escolha e o que se diz. As ideias são o terreno.\n",
+    "A Terra domina. Isto é prático, lento e real: corpos, dinheiro, chão. Nada aqui é abstrato.\n",
+    "Três elementos diferentes, nenhum no comando. A leitura está equilibrada e não vai pender até você se apoiar nela.\n"
+  ],
+  "transition": [
+    "%1 e %2 compartilham %3, então o movimento entre eles é liso. Nada resiste à mudança.\n",
+    "%1 (%2) e %3 (%4) se apagam um ao outro: impulso encontra sentimento, e nenhum vence de vez.\n",
+    "%1 (%2) e %3 (%4) ficam em elementos opostos: ideias contra chão. Um tem que ceder ao outro.\n",
+    "%1 (%2) alimenta %3 (%4). Os elementos são amigos, então esta passagem custa menos do que parece.\n"
+  ],
+  "hidden": "Os três números somam %1. A carta sob a tiragem: %2. %3\n",
+  "hiddenRepeated": "Ela já está na mesa, na posição %1, o que dobra o peso dela.\n"
+}

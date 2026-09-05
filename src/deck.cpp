@@ -313,16 +313,20 @@ bool langApply(const char *lang, uint8_t deckId) {
   DeckText text = {};
   char path[256];
 
+  // The two packs fall back separately. A language is usually translated one
+  // deck at a time, and a half-finished language should show the decks it has
+  // rather than reverting the whole device to English.
   bool ok = true;
   langPath(path, sizeof path, "", lang, "ui");
-  if (!packLoad(ui, path) || !deckTextLoad(text, deck, lang)) {
-    packFree(ui);
-    deckTextFree(text);
+  if (!packLoad(ui, path)) {
     ok = false;
     langPath(path, sizeof path, "", "en", "ui");
-    if (!packLoad(ui, path) || !deckTextLoad(text, deck, "en")) {
+    if (!packLoad(ui, path)) return false;
+  }
+  if (!deckTextLoad(text, deck, lang)) {
+    ok = false;
+    if (!deckTextLoad(text, deck, "en")) {
       packFree(ui);
-      deckTextFree(text);
       return false;
     }
   }

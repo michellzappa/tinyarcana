@@ -129,8 +129,41 @@ case system. Slot order is the translator's: `%1` to `%4` may appear in any
 order, which is the whole reason the engine formats its own strings instead of
 calling `snprintf`.
 
+A language may leave a deck untranslated. `langApply()` falls back per pack,
+not per language, so `pt-BR` with only `rws.json` shows Portuguese everywhere
+and English on the other two decks. The build prints which decks are still
+missing.
+
 The settings screen lists whatever directories exist under `/lang`
 (`langList()`), so the firmware never carries a list of languages of its own.
+
+**Measure a translation before believing it.** Two gates, both mirroring the
+firmware's own layout:
+
+```sh
+python3 tools/meaning_fit.py            # card meanings, 6 lines, silent truncation
+python3 tools/fit_check.py --board round --jsonl --field text --max-pages 9 readings.jsonl
+```
+
+`uiMeaning()` stops drawing after six lines and says nothing, so an over-long
+meaning loses its last sentence with no error anywhere. `meaning_fit.py` is the
+only thing that catches it. Measured 2026-09-05: English RWS runs to 5 of 6
+lines, **Portuguese RWS to 6 of 6**. Portuguese has no headroom left; re-run the
+gate after editing any `pt-BR` meaning.
+
+Hint lines are the other trap, and they have no gate. Measure them by hand
+against the chord. Three Portuguese hints overflowed on the first pass, and so
+did one English one: `TAP AN OPTION TO CHANGE` rendered 190 px into the 160 px
+chord at baseline 447 and had been clipped since it was written. It is now
+`TAP TO CHANGE`.
+
+**pt-BR shows what the gender rule costs.** All four `rowNames` are inserted
+after prepositions that contract with the article in Portuguese (`em o` -> `no`,
+`de o` -> `do`). The names therefore carry no article at all (`limiar`, not
+`o limiar`) and every template supplies the contracted form itself. That works
+only because all four bands are masculine singular, which was a choice made
+when writing them. A language needing two genders here writes two template
+sets; the engine does not grow a case system.
 
 ## Partition table
 

@@ -462,9 +462,22 @@ void uiSettings(const AppSettings &settings, uint8_t selected) {
     }
     txtDraw(lora_small, labels[i], (int16_t)(SETTINGS_BUTTON_X + 20), y,
             isSelected ? COL_GOLD : COL_DIM, 2);
-    txtRight(lora_label, value,
-             (int16_t)(SETTINGS_BUTTON_X + SETTINGS_BUTTON_W - 20),
-             (int16_t)(y + 20), COL_IVORY, 2);
+    const int16_t valueRight = (int16_t)(SETTINGS_BUTTON_X + SETTINGS_BUTTON_W - 20);
+    txtRight(lora_label, value, valueRight, (int16_t)(y + 20), COL_IVORY, 2);
+
+    // A swatch of the deck's own artwork, left of its name. The names say
+    // which deck; only the picture says what it looks like, which is the
+    // reason to switch. Card 0 because every deck has one.
+    //
+    // cardDrawFaceScaled() falls back to a full-size card when the bitmap is
+    // missing, which would paint over the whole screen from inside a 46 px
+    // row, so ask for the bitmap first and skip the swatch without one.
+    if (i == 0 && cardBitmap(0, CARD_L)) {
+      const int16_t pw = 20, ph = 36;
+      const int16_t vx = (int16_t)(valueRight - txtWidth(lora_label, value, -1, 2));
+      cardDrawFaceScaled(0, (int16_t)(vx - 12 - pw / 2),
+                         (int16_t)(top + (SETTINGS_BUTTON_H - ph) / 2), pw, ph);
+    }
   }
 
   // A real on-screen back target keeps the screen usable without the case
@@ -663,7 +676,7 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   char cap[96];
   char ruler[40], el[24];
   upper(ruler, sizeof ruler, c.ruler);
-  upper(el, sizeof el, T((uint16_t)(ENG_EL_FIRE + c.element)));
+  upper(el, sizeof el, T((uint16_t)((uint16_t)ENG_EL_FIRE + c.element)));
   if (!ruler[0] || strcmp(ruler, el) == 0)
     snprintf(cap, sizeof cap, "%s   %s", c.numeral, el);
   else snprintf(cap, sizeof cap, "%s   %s   %s", c.numeral, ruler, el);

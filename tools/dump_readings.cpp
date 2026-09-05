@@ -87,9 +87,9 @@ int main(int argc, char **argv) {
         printf("\"hidden\":%d,\"hidden_name\":\"%s\",", hidden,
                deckCard(text, hidden).name);
         printf("\"elements\":[\"%s\",\"%s\",\"%s\"],",
-               packGet(ui, (uint16_t)(ENG_EL_FIRE + deckCard(text, a).element)),
-               packGet(ui, (uint16_t)(ENG_EL_FIRE + deckCard(text, b).element)),
-               packGet(ui, (uint16_t)(ENG_EL_FIRE + deckCard(text, c).element)));
+               packGet(ui, (uint16_t)((uint16_t)ENG_EL_FIRE + deckCard(text, a).element)),
+               packGet(ui, (uint16_t)((uint16_t)ENG_EL_FIRE + deckCard(text, b).element)),
+               packGet(ui, (uint16_t)((uint16_t)ENG_EL_FIRE + deckCard(text, c).element)));
         printf("\"len\":%zu,\"text\":\"", len);
         jsonEscape(buf);
         printf("\"}\n");

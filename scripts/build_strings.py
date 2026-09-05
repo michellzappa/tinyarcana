@@ -21,8 +21,11 @@ Pack format, little-endian, read by packLoad() in src/strings.cpp:
     blob                  count NUL-terminated UTF-8 strings
 
 `en` is canonical: another language must define exactly the same UI keys, and
-its deck files must hold the same counts. The build fails rather than shipping
-a pack that would read a missing string at runtime.
+any deck file it does provide must hold the same counts. The build fails
+rather than shipping a pack that would read a missing string at runtime.
+
+A language may leave a deck untranslated. That deck falls back to English on
+the device, so a language can land one deck at a time.
 """
 import json
 import os
@@ -121,6 +124,7 @@ def main():
     print("ids: %s (%d strings)" % (os.path.relpath(write_ids(keys, base_decks), ROOT), len(keys)))
 
     index = []
+    missing_decks = []
     for lang in langs:
         src = os.path.join(LANG_SRC, lang)
         ui = load(os.path.join(src, "ui.json"))
@@ -139,8 +143,13 @@ def main():
 
             for name, (cards, pairs) in base_decks.items():
                 p = os.path.join(src, name)
+                # A language is translated one deck at a time. A missing deck
+                # falls back to English at runtime, so it is a note, not an
+                # error; a deck that IS present must still match exactly.
                 if not os.path.isfile(p):
-                    raise SystemExit("%s: no %s" % (lang, name))
+                    if lang != BASE:
+                        missing_decks.append("%s/%s" % (lang, name[:-5]))
+                    continue
                 doc = load(p)
                 strings, c, pr = deck_strings(doc, p)
                 if (c, pr) != (cards, pairs):
@@ -150,6 +159,10 @@ def main():
                 open(os.path.join(out, name[:-5] + ".pack"), "wb").write(blob)
                 total += len(blob)
             print("lang: %-6s %s -> %d KB" % (lang, env, (total + 1023) // 1024))
+
+    if missing_decks:
+        print("note: not translated yet, English is used for these: %s"
+              % ", ".join(sorted(set(missing_decks))))
 
     for env in ENVS:
         p = os.path.join(DATA_DIR, env, "lang", "index.json")
