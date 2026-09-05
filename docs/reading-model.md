@@ -44,11 +44,18 @@ this before quoting any of the old numbers.
 - **Flash is fully allocated.** `partitions.csv` is now app0 4 MB, spiffs
   11.88 MB, and there is no gap. The 3.88 MB hole the model was originally
   sized into is gone.
-- **Card data is 9.2 MB** of that 11.88 MB spiffs, and deck support means it
-  grows. Firmware is 658 KB of the 4 MB app partition.
-- So a model partition has to be taken from both: app0 down to about 1 MB
-  frees 3 MB, and spiffs has roughly 2.6 MB of slack. That is enough for a
-  4.6 MB model and not much more.
+- **The filesystem is full.** Read off the board on 2026-09-04:
+  `littlefs: 11764/12160 KB`, which is **396 KB free, 96.7% used**. Four deck
+  packs at about 2.08 MiB each have taken it. Firmware is 719 KB of the 4 MB
+  app partition.
+- So there is essentially one place a model can come from: **app0**. Shrinking
+  it to 1 MB frees 3 MB against a 719 KB firmware. A 4.6 MB model needs
+  another 1.6 MB on top of that, and the only source is a deck. **Fitting the
+  model means shipping one fewer deck, or making the model smaller.** That is
+  a product decision, not a build one, and it should be made before any
+  training starts rather than discovered at flashing time.
+- Check the free figure yourself before planning around it; it moves every
+  time a deck is added. The boot log prints it on every reset.
 - **The PLE table must be memory-mapped, so it needs its own raw partition.**
   A LittleFS file cannot be mmap'd. This is a `partitions.csv` change plus a
   full `uploadfs`, not a file you can drop in.
@@ -101,7 +108,8 @@ and the speed advantage goes with it.
    not need a cloud GPU.
 6. **Quantise to INT4** and verify the C runtime matches the trained model on
    the host before it goes near the board.
-7. **Repartition and integrate.** See the flash note above.
+7. **Repartition and integrate.** See the flash note above. Decide what gives
+   way to the model partition before this point, not at it.
 8. **Stream it.** 50 words is about 70 tokens, roughly seven seconds at
    10 tok/s. Stream word by word into the single page so the wait is the
    ritual rather than a pause. Do not paginate: at one page there is nothing
@@ -109,6 +117,11 @@ and the speed advantage goes with it.
 
 ## Open questions
 
+- **What gives way to the model.** A 4.6 MB model does not fit alongside four
+  deck packs. Either one deck goes, or the model is built smaller than the
+  barista reference. Smaller is worth costing before it is ruled out: the
+  output vocabulary here is around 1500 classes against barista's 854 but the
+  reading is 50 words, so the sizing is not a straight copy.
 - Local or API for the corpus. Step 2 answers it.
 - Whether the spare M4 is base or Pro. Roughly 2x throughput between them.
 - Whether to keep Lotterhand, 103K words with its leading capitals gone.
