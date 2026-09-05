@@ -31,10 +31,20 @@ trumps around the rim and names the device; the Fool is unnumbered, so he is
 the dot at the centre rather than a mark on the wheel.
 
 From the deck screen, PWR opens the menu. Settings persist across boots and
-currently cover the active deck, brightness, and the underlying
-card line. Rider-Waite-Smith is the first and default deck. GPTarot, Thoth,
-and Marseille are also available as 22-card Major-only options; each carries
-its own card meanings, numbering, relationship prose, and reading voice.
+currently cover the active deck, brightness, whether the quintessence shows
+beneath the spread, and whether a draw is three cards or one.
+
+A single card is a different ritual, not a shorter one. One touch on the deck
+picks it, there is no hold and no charge ring, the card arrives face down at
+full size and turns itself over, and a tap past its meaning sends it back to
+the deck. It has no spread screen and no inner reading: that composer is built
+from an arc across positions, the elements between neighbours, curated pairs
+and a digit-reduced sum, and one card has none of them. Touch to a face-up
+card is about 860 ms against roughly 3.5 seconds for the three-card draw.
+
+Rider-Waite-Smith is the first and default deck. GPTarot, Thoth, and Marseille
+are also available as 22-card Major-only options; each carries its own card
+meanings, numbering, relationship prose, and reading voice.
 
 In the menu, BOOT moves between items and PWR opens one. In Settings, BOOT
 moves between rows, PWR changes the selected value, and tapping the bottom
@@ -64,6 +74,11 @@ Not a lookup. `src/tarot_engine.cpp` builds the reading from the spread:
 | **BOOT + PWR** or **BOOT hold** | | close the reading | close the reading | close the reading |
 | **PWR** | menu | inner reading (turns remaining cards first) | inner reading | back to spread |
 | **PWR hold ~6 s** | power off (hardware) | | | |
+
+That table is the three-card draw. With a single card the deck takes one touch
+rather than a hold, there is no spread screen, the card turns itself, and PWR
+does nothing except open the menu from the deck. The help screen in the menu
+describes whichever draw is switched on.
 
 ## Build and flash
 

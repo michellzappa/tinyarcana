@@ -375,16 +375,27 @@ void uiHelp() {
   gfx->clear(COL_BG);
   txtCenter(lora_head, "How to read", CX, HEAD_Y, COL_IVORY);
   rule(HEAD_Y + 14, COL_GOLD_DIM);
-  const char *lines[] = {
+
+  // The two draws are different rituals, not one with pieces removed, so the
+  // help describes whichever is switched on. Settings is one screen away.
+  static const char *const THREE[] = {
       "Hold the deck to shuffle. Your touch feeds the draw, on top of the chip's hardware noise.",
       "Release to cut. Three cards are dealt: past, present, future.",
       "Tap a card to turn it. Tap it again to read it.",
       "BOOT steps through the cards. Press BOOT and PWR together, or hold BOOT, to close the reading.",
       "PWR opens the inner reading: how the three cards speak to each other.",
   };
+  static const char *const ONE[] = {
+      "Touch the deck to pick a card. Your touch feeds the draw, on top of the chip's hardware noise.",
+      "The card arrives face down and turns itself over.",
+      "Tap it to read what it means. Tap again to send it back to the deck.",
+      "BOOT and PWR together, or hold BOOT, closes the reading at any point.",
+      "Settings switches between one card and three.",
+  };
+  const char *const *lines = appSettings.singleCard ? ONE : THREE;
   int16_t y = (int16_t)(HEAD_Y + 44);
-  for (const char *l : lines) {
-    y = txtWrappedFn(lora_body, l, widthAt, y, 20, COL_IVORY, 4);
+  for (uint8_t i = 0; i < 5; i++) {
+    y = txtWrappedFn(lora_body, lines[i], widthAt, y, 20, COL_IVORY, 4);
     y = (int16_t)(y + 9);
   }
   hint("TAP TO GO BACK");
