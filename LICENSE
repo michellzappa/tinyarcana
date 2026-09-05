@@ -34,5 +34,11 @@ Third-party material in this repository:
 - assets/decks/gptarot/*.webp: GPTarot artwork by Aesthetic Hermetics and
   Michell Zappa, sourced from GPTarot.ai. These images are third-party
   artwork and are not covered by this repository's MIT license.
+- assets/decks/marseille/*.webp: Marseille 1736 Major Arcana set supplied from
+  the project's ODX Notion deck collection. Redistribution status was not
+  independently verified; these images are not covered by this MIT license.
+- Thoth card names, correspondences, and original device meanings in
+  src/deck_content.cpp follow the Crowley system. No Crowley-Harris card
+  artwork is included.
 - The CST9217 touch protocol in src/board_input.cpp follows SensorLib
   (Lewis He, MIT).

@@ -18,10 +18,9 @@ cards say to each other. Offline. No account, no API, no cloud.
    deck has been shuffling in your hand the whole time.
 3. **Turn.** Tap a card to flip it.
 4. **Read.** Tap a turned card: it fills the screen. Tap it away for its
-   meaning in that position, under the card's Golden Dawn glyph: a zodiac
-   sign, a planet, or an elemental triangle for the Fool, the Hanged Man and
-   Judgement. The glyphs are drawn from stroke tables (`src/glyphs.cpp`), so
-   no symbol font is embedded.
+   meaning in that position, under the deck's attribution when it supplies
+   one. The glyphs are drawn from stroke tables (`src/glyphs.cpp`), so no
+   symbol font is embedded.
 5. **Go inside.** PWR opens the inner reading.
 
 The screens say very little. The one instruction on the deck disappears as
@@ -33,8 +32,9 @@ the dot at the centre rather than a mark on the wheel.
 
 From the deck screen, PWR opens the menu. Settings persist across boots and
 currently cover the active deck, brightness, and the underlying
-card line. Rider-Waite-Smith is the first and default deck, and GPTarot is
-available as a second 22-card Major-only artwork option.
+card line. Rider-Waite-Smith is the first and default deck. GPTarot, Thoth,
+and Marseille are also available as 22-card Major-only options; each carries
+its own card meanings, numbering, relationship prose, and reading voice.
 
 In the menu, BOOT moves between items and PWR opens one. In Settings, BOOT
 moves between rows, PWR changes the selected value, and tapping the bottom
@@ -49,7 +49,7 @@ Not a lookup. `src/tarot_engine.cpp` builds the reading from the spread:
 | --- | --- |
 | The arc | Whether the numbers climb, fall, peak or dip across the three positions, and which rows of the Fool's Journey (outer, inner, greater world) they cross |
 | Elements | The dominant element, and whether adjacent positions share, feed or oppose each other (Fire/Water, Air/Earth) |
-| Threads | Twenty-two curated pairs with their own sentence, ordered where order matters (the Tower before the Star is not the Star before the Tower) |
+| Threads | Twenty-two curated pairs supplied by the selected deck, ordered where order matters (the Tower before the Star is not the Star before the Tower) |
 | The hidden card | The quintessence: the three numbers summed and digit-reduced to a major, doubled in weight if it is already on the table |
 | The question | The Future card's closing question |
 
@@ -97,9 +97,10 @@ src/
   deck.*            deck registry and stable deck/card access
   settings.*        persistent NVS settings
   ui.*              every screen, all painted into one PSRAM frame
-  tarot_data.h      22 cards: keywords, essence, per-position meanings, questions
+  tarot_data.h      RWS card meanings and shared data types
+  deck_content.*    GPTarot, Thoth, and Marseille meanings and pair prose
   tarot_engine.*    inner reading composer
-  cards.*           LittleFS card bitmaps, rounded blits, procedural back
+  cards.*           LittleFS card/back bitmaps, rounded blits, procedural fallback
   text.*            anti-aliased Lora text, wrapping, paging
   entropy.*         hardware RNG + touch stirring
   glyphs.*          Golden Dawn symbols drawn from stroke tables
@@ -107,7 +108,7 @@ src/
   board_input.*     BOOT, PWR and CST9217 touch
   fonts/            generated glyph tables
 assets/cards/             Rider-Waite-Smith majors (public domain)
-assets/decks/             additional Major-only deck asset instructions
+assets/decks/             additional Major-only deck assets and instructions
 assets/fonts/             Lora (SIL OFL)
 scripts/build_assets.py   cards + fonts
 scripts/preview_read.py   meaning-page layout preview (mirrors ui.cpp)
@@ -119,15 +120,17 @@ data/<env>/               generated LittleFS payload (gitignored)
 ### Tarot artwork and fair use
 
 The included Rider-Waite-Smith artwork is identified as public domain in
-[LICENSE](LICENSE). Any additional Thoth, Marseille, or other deck artwork
+[LICENSE](LICENSE). The bundled Marseille pack is the CC0 Jean Dodal-attributed
+Major Arcana pack credited there. Any additional Thoth or other deck artwork
 must be reviewed separately: a particular scan, edition, restoration, or
 digital redraw may still be protected. Where an additional deck is included
 for private prototyping, criticism, scholarship, or comparison, its use is
 intended to rely only on a fair-use/fair-dealing rationale where that doctrine
 applies. Fair use is jurisdiction-specific and is not blanket permission to
-redistribute commercial deck artwork. Confirm the applicable rights and add
-the appropriate credit or permission before distributing a build containing
-additional decks.
+redistribute commercial deck artwork. The Thoth option currently contains
+semantic data only and deliberately includes no Crowley-Harris paintings.
+Confirm the applicable rights and add the appropriate credit or permission
+before distributing a build containing additional artwork.
 
 ## Licence
 

@@ -14,11 +14,11 @@ identical over USB and takes a different pin map:
 
 | Device | MAC | Env | Factory backup |
 | --- | --- | --- | --- |
-| AMOLED 1.75 round | `80:45:6b:33:d0:60` | `amoled-175-round` | `waveshare-175-round-...-factory.bin` |
+| AMOLED 1.75 round | `28:84:85:57:38:14` | `amoled-175-round` | `waveshare-unknown-288485573814-factory-20260904.bin` |
 
 Other identical boards on this desk belong to other projects and must not be
 flashed from here. `AGENTS.local.md` holds that inventory; it is not in the
-repo. If the MAC on the cable is not one of the two above, stop.
+repo. If the MAC on the cable is not the one above, stop.
 
 ```sh
 ~/.platformio/penv/bin/python ~/.platformio/packages/tool-esptoolpy/esptool.py -p /dev/cu.usbmodem101 read-mac

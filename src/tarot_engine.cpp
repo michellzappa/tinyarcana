@@ -7,13 +7,6 @@
 
 // ---- Fool's Journey rows ----
 static uint8_t rowOf(uint8_t n) { return n == 0 ? 0 : (uint8_t)((n - 1) / 7 + 1); }
-static const char *const ROW_NAME[4] = {
-    "the threshold", "the outer world", "the inner world", "the greater world"};
-static const char *const ROW_GLOSS[4] = {
-    "the step before any of it",
-    "roles, people and the things you can touch",
-    "the tests the soul sets itself",
-    "forces larger than any one life"};
 
 // ---- Helpers ----
 static void app(char *buf, size_t n, size_t &len, const char *s) {
@@ -59,28 +52,29 @@ size_t tarotCompose(const DeckDefinition &deck, const Reading &r, char *buf,
   const CardInfo &A = deckCard(deck, a);
   const CardInfo &B = deckCard(deck, b);
   const CardInfo &C = deckCard(deck, c);
+  const DeckReadingStyle &style = *deck.reading;
 
   // ---- The arc ----
   app(buf, n, len, "#THE ARC\n");
   if (av < bv && bv < cv) {
-    appf(buf, n, len, "The numbers climb from %s to %s. This story moves deeper into the journey, not back to its start. Each card is further along than the one before it.\n", A.numeral, C.numeral);
+    appf(buf, n, len, style.arcTemplates[DECK_ARC_CLIMB], A.numeral, C.numeral);
   } else if (av > bv && bv > cv) {
-    appf(buf, n, len, "The numbers fall from %s to %s. The sequence runs backward: what lies ahead is an earlier lesson, revisited with what you now know.\n", A.numeral, C.numeral);
+    appf(buf, n, len, style.arcTemplates[DECK_ARC_FALL], A.numeral, C.numeral);
   } else if (bv > av && bv > cv) {
-    appf(buf, n, len, "%s in the present is the summit. Past and future both sit lower. Whatever this is, you are in the thick of it now, and the road down is shorter than the climb was.\n", B.name);
+    appf(buf, n, len, style.arcTemplates[DECK_ARC_SUMMIT], B.name);
   } else {
-    appf(buf, n, len, "%s in the present is the low point between two higher cards. The dip is the passage, not the destination.\n", B.name);
+    appf(buf, n, len, style.arcTemplates[DECK_ARC_DIP], B.name);
   }
 
   const uint8_t ra = rowOf(av), rb = rowOf(bv), rc = rowOf(cv);
   if (ra == rb && rb == rc) {
-    appf(buf, n, len, "All three cards live in %s: %s. The whole reading happens on one plane, so the answer is on that plane too.\n", ROW_NAME[ra], ROW_GLOSS[ra]);
+    appf(buf, n, len, style.planeTemplates[DECK_PLANE_SAME], style.rowNames[ra], style.rowGlosses[ra]);
   } else if (rc > ra) {
-    appf(buf, n, len, "The reading rises from %s into %s. What began as %s ends as %s.\n", ROW_NAME[ra], ROW_NAME[rc], ROW_GLOSS[ra], ROW_GLOSS[rc]);
+    appf(buf, n, len, style.planeTemplates[DECK_PLANE_RISE], style.rowNames[ra], style.rowNames[rc], style.rowGlosses[ra], style.rowGlosses[rc]);
   } else if (rc < ra) {
-    appf(buf, n, len, "The reading descends from %s to %s. Something abstract is coming down to earth, where it can finally be handled.\n", ROW_NAME[ra], ROW_NAME[rc]);
+    appf(buf, n, len, style.planeTemplates[DECK_PLANE_DESCEND], style.rowNames[ra], style.rowNames[rc]);
   } else {
-    appf(buf, n, len, "Past and future share %s; only the present steps into %s. The detour is the point.\n", ROW_NAME[ra], ROW_NAME[rb]);
+    appf(buf, n, len, style.planeTemplates[DECK_PLANE_DETOUR], style.rowNames[ra], style.rowNames[rb]);
   }
 
   // ---- Elements ----
@@ -89,11 +83,8 @@ size_t tarotCompose(const DeckDefinition &deck, const Reading &r, char *buf,
   count[A.element]++; count[B.element]++; count[C.element]++;
   int8_t dom = -1;
   for (uint8_t e = 0; e < 4; e++) if (count[e] >= 2) dom = (int8_t)e;
-  if (dom == EL_FIRE) app(buf, n, len, "Fire dominates. This reading runs on will and momentum. Watch what it burns through on the way.\n");
-  else if (dom == EL_WATER) app(buf, n, len, "Water dominates. Feeling and intuition carry this; facts come second to what you sense.\n");
-  else if (dom == EL_AIR) app(buf, n, len, "Air dominates. This is about thought, choice and what gets said. Ideas are the terrain.\n");
-  else if (dom == EL_EARTH) app(buf, n, len, "Earth dominates. This is practical, slow and real: bodies, money, ground. Nothing here is abstract.\n");
-  else app(buf, n, len, "Three different elements, none in charge. The reading is balanced and will not tip until you lean on it.\n");
+  app(buf, n, len,
+      style.dominantTemplates[dom < 0 ? DECK_DOM_BALANCED : (uint8_t)dom]);
 
   for (uint8_t i = 0; i < 2; i++) {
     const CardInfo &P = deckCard(deck, r.card[i]);
@@ -101,14 +92,20 @@ size_t tarotCompose(const DeckDefinition &deck, const Reading &r, char *buf,
     const char *pn = POSITION_NAME[i];
     const char *qn = POSITION_NAME[i + 1];
     if (P.element == Q.element) {
-      appf(buf, n, len, "%s and %s share %s, so the movement between them is smooth. Nothing resists the change.\n", pn, qn, ELEMENT_NAME[P.element]);
+      appf(buf, n, len, style.transitionTemplates[DECK_TRANSITION_SAME], pn,
+           qn, ELEMENT_NAME[P.element]);
     } else if (opposed(P.element, Q.element)) {
       if (P.element == EL_FIRE || P.element == EL_WATER)
-        appf(buf, n, len, "%s (%s) and %s (%s) quench each other: drive meets feeling, and neither wins outright.\n", pn, ELEMENT_NAME[P.element], qn, ELEMENT_NAME[Q.element]);
+        appf(buf, n, len,
+             style.transitionTemplates[DECK_TRANSITION_FIRE_WATER], pn,
+             ELEMENT_NAME[P.element], qn, ELEMENT_NAME[Q.element]);
       else
-        appf(buf, n, len, "%s (%s) and %s (%s) sit on opposed elements: ideas against ground. One has to yield to the other.\n", pn, ELEMENT_NAME[P.element], qn, ELEMENT_NAME[Q.element]);
+        appf(buf, n, len,
+             style.transitionTemplates[DECK_TRANSITION_AIR_EARTH], pn,
+             ELEMENT_NAME[P.element], qn, ELEMENT_NAME[Q.element]);
     } else {
-      appf(buf, n, len, "%s (%s) feeds %s (%s). The elements are friendly, so this transition costs less than it looks.\n", pn, ELEMENT_NAME[P.element], qn, ELEMENT_NAME[Q.element]);
+      appf(buf, n, len, style.transitionTemplates[DECK_TRANSITION_FRIENDLY], pn,
+           ELEMENT_NAME[P.element], qn, ELEMENT_NAME[Q.element]);
     }
   }
 
@@ -140,10 +137,10 @@ size_t tarotCompose(const DeckDefinition &deck, const Reading &r, char *buf,
   char nums[48];
   if (sum > 21) snprintf(nums, sizeof nums, "%u, which reduces to %u", sum, h);
   else snprintf(nums, sizeof nums, "%u", sum);
-  appf(buf, n, len, "The three numbers add to %s. That names %s as the card beneath the spread. %s\n", nums, H.name, H.essence);
+  appf(buf, n, len, style.hiddenTemplate, nums, H.name, H.essence);
   for (uint8_t i = 0; i < 3; i++) {
     if (r.card[i] == h) {
-      appf(buf, n, len, "It is already on the table, in the %s position, which doubles its weight.\n", POSITION_NAME[i]);
+      appf(buf, n, len, style.hiddenRepeatedTemplate, POSITION_NAME[i]);
     }
   }
 

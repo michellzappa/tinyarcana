@@ -3,6 +3,7 @@
 #include <LittleFS.h>
 #include <esp_heap_caps.h>
 #include <math.h>
+#include <string.h>
 
 #include "board_display.h"
 #include "text.h"
@@ -10,12 +11,17 @@
 static bool fsOk = false;
 static const DeckDefinition *activeDeck = nullptr;
 static uint16_t *cache[MAJOR_COUNT] = {};
+static uint16_t *backCache = nullptr;
+static bool backAttempted = false;
 
 static void clearCache() {
   for (uint8_t i = 0; i < MAJOR_COUNT; i++) {
     if (cache[i]) free(cache[i]);
     cache[i] = nullptr;
   }
+  if (backCache) free(backCache);
+  backCache = nullptr;
+  backAttempted = false;
 }
 
 bool cardsBegin() {
@@ -37,6 +43,7 @@ bool cardsSelectDeck(const DeckDefinition &deck) {
     activeDeck = &deck;
   }
   if (!fsOk) return false;
+  if (!deck.assetDir) return true;
   char path[96];
   snprintf(path, sizeof path, "/decks/%s/%02u_%dx%d.565", deck.assetDir, 0,
            CARD_SRC_W, CARD_SRC_H);
@@ -45,7 +52,8 @@ bool cardsSelectDeck(const DeckDefinition &deck) {
 
 const uint16_t *cardBitmap(uint8_t idx, CardSize sz) {
   (void)sz;
-  if (idx >= MAJOR_COUNT || !fsOk || !activeDeck) return nullptr;
+  if (idx >= MAJOR_COUNT || !fsOk || !activeDeck || !activeDeck->assetDir)
+    return nullptr;
   if (cache[idx]) return cache[idx];
   char path[96];
   snprintf(path, sizeof path, "/decks/%s/%02u_%dx%d.565", activeDeck->assetDir,
@@ -72,6 +80,37 @@ const uint16_t *cardBitmap(uint8_t idx, CardSize sz) {
 void cardPreload(uint8_t idx) {
   cardBitmap(idx, CARD_S);
   cardBitmap(idx, CARD_L);
+}
+
+static const uint16_t *cardBackBitmap() {
+  if (!activeDeck || !activeDeck->backAsset || !fsOk || backAttempted)
+    return backCache;
+  backAttempted = true;
+
+  char path[96];
+  snprintf(path, sizeof path, "/decks/%s/%s_%dx%d.565", activeDeck->assetDir,
+           activeDeck->backAsset, CARD_SRC_W, CARD_SRC_H);
+  File f = LittleFS.open(path, "r");
+  if (!f) {
+    Serial.printf("cards: missing %s (using procedural back)\n", path);
+    return nullptr;
+  }
+  const size_t bytes = (size_t)CARD_SRC_W * CARD_SRC_H * 2;
+  uint16_t *buf = (uint16_t *)ps_malloc(bytes);
+  if (!buf) {
+    f.close();
+    return nullptr;
+  }
+  const size_t got = f.read((uint8_t *)buf, bytes);
+  f.close();
+  if (got != bytes) {
+    Serial.printf("cards: short read %s (%u/%u)\n", path, (unsigned)got,
+                  (unsigned)bytes);
+    free(buf);
+    return nullptr;
+  }
+  backCache = buf;
+  return backCache;
 }
 
 // Inside a rounded rect of w x h with corner radius r?
@@ -106,8 +145,29 @@ void cardDrawFace(uint8_t idx, CardSize sz, int16_t cx, int16_t y, float squash)
       if (px < 0 || px >= SCR_W) continue;
       if (!insideRounded(dx, dy, dw, h, rr < 2 ? 2 : rr)) continue;
       const bool edge = dx == 0 || dx == dw - 1 || dy == 0 || dy == h - 1;
-      if (edge || !bmp) {
-        row[px] = bmp ? COL_EDGE : RGB565(40, 36, 48);
+      if (edge) {
+        row[px] = COL_EDGE;
+        continue;
+      }
+      if (!bmp) {
+        // Asset-free decks still need a visible card while their artwork is
+        // being sourced. This is deliberately a restrained geometric face,
+        // not a substitute for a deck illustration.
+        const bool thoth = activeDeck && activeDeck->id &&
+                           strcmp(activeDeck->id, "thoth") == 0;
+        const uint16_t base = thoth ? RGB565(24, 20, 58) : RGB565(40, 36, 48);
+        const uint16_t accent = thoth ? RGB565(198, 142, 62) : RGB565(72, 64, 82);
+        const uint16_t glow = thoth ? RGB565(42, 104, 118) : RGB565(56, 50, 68);
+        const int16_t mx = (int16_t)(dw / 2), my = (int16_t)(h / 2);
+        const int32_t ex = dx - mx, ey = dy - my;
+        const int32_t manhattan = abs(ex) + abs(ey);
+        const int16_t band = (int16_t)(h / 18);
+        if (thoth && (manhattan < dw / 3 || (dx + dy + idx * 7) % (band > 2 ? band : 3) == 0))
+          row[px] = accent;
+        else if (thoth && (abs(ex - ey) < 2 || abs(ex + ey) < 2))
+          row[px] = glow;
+        else
+          row[px] = base;
         continue;
       }
       const int16_t sx = (int16_t)((int32_t)dx * CARD_SRC_W / dw);
@@ -120,7 +180,11 @@ void cardDrawFace(uint8_t idx, CardSize sz, int16_t cx, int16_t y, float squash)
 void cardDrawFaceScaled(uint8_t idx, int16_t cx, int16_t y, int16_t w, int16_t h) {
   const uint16_t *bmp = cardBitmap(idx, CARD_L);
   uint16_t *fb = gfx->fb();
-  if (!fb || !bmp || w < 2 || h < 2) return;
+  if (!fb || w < 2 || h < 2) return;
+  if (!bmp) {
+    cardDrawFace(idx, CARD_L, cx, y, 1.0f);
+    return;
+  }
   const int16_t sw = CARD_SRC_W, sh = CARD_SRC_H;
   const int16_t x0 = (int16_t)(cx - w / 2);
   int16_t r = (int16_t)(w / 22);
@@ -157,6 +221,30 @@ void cardDrawBack(int16_t cx, int16_t y, int16_t w, int16_t h, float squash,
   const int16_t x0 = (int16_t)(cx - dw / 2);
   const int16_t r = (int16_t)(w / 16);
   const int16_t rr = (int16_t)(r * squash);
+
+  const uint16_t *bmp = cardBackBitmap();
+  if (bmp) {
+    const int16_t rr2 = rr < 2 ? 2 : rr;
+    for (int16_t dy = 0; dy < h; dy++) {
+      const int16_t py = (int16_t)(y + dy);
+      if (py < 0 || py >= SCR_H) continue;
+      uint16_t *row = fb + (int32_t)py * SCR_W;
+      const bool cornerRow = (dy < rr2) || (dy >= h - rr2);
+      const uint16_t *src = bmp + (int32_t)dy * CARD_SRC_H / h * CARD_SRC_W;
+      for (int16_t dx = 0; dx < dw; dx++) {
+        const int16_t px = (int16_t)(x0 + dx);
+        if (px < 0 || px >= SCR_W) continue;
+        if (cornerRow && !insideRounded(dx, dy, dw, h, rr2)) continue;
+        // sx indexes the source bitmap, which is CARD_SRC_W wide, not the
+        // destination. Scaling by w/dw instead cropped the back to its
+        // leftmost dw columns and never sampled the rest, so the artwork sat
+        // off to the left. cardDrawFace() has always done this correctly.
+        const int16_t sx = (int16_t)((int32_t)dx * CARD_SRC_W / dw);
+        row[px] = src[sx];
+      }
+    }
+    return;
+  }
 
   const uint16_t indigo = RGB565(24, 22, 56);
   const uint16_t indigoDeep = RGB565(16, 14, 40);

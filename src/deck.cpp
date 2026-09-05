@@ -1,5 +1,7 @@
 #include "deck.h"
 
+#include "deck_content.h"
+
 // RWS is the first and default deck. The values are explicit so decks with a
 // different Strength/Justice numbering can provide their own table later.
 static const uint8_t RWS_VALUES[MAJOR_COUNT] = {
@@ -39,14 +41,105 @@ static const DeckPair RWS_PAIRS[] = {
     {0, 13, false, "The Fool and Death travel together: a beginning that needs an ending to make room for it."},
 };
 
+static const char *const RWS_ROW_NAME[4] = {
+    "the threshold", "the outer world", "the inner world", "the greater world"};
+static const char *const RWS_ROW_GLOSS[4] = {
+    "the step before any of it",
+    "roles, people and the things you can touch",
+    "the tests the soul sets itself",
+    "forces larger than any one life"};
+static const char *const RWS_ARC[4] = {
+    "The numbers climb from %s to %s. This story moves deeper into the journey, not back to its start. Each card is further along than the one before it.\n",
+    "The numbers fall from %s to %s. The sequence runs backward: what lies ahead is an earlier lesson, revisited with what you now know.\n",
+    "%s in the present is the summit. Past and future both sit lower. Whatever this is, you are in the thick of it now, and the road down is shorter than the climb was.\n",
+    "%s in the present is the low point between two higher cards. The dip is the passage, not the destination.\n",
+};
+static const char *const RWS_PLANE[4] = {
+    "All three cards live in %s: %s. The whole reading happens on one plane, so the answer is on that plane too.\n",
+    "The reading rises from %s into %s. What began as %s ends as %s.\n",
+    "The reading descends from %s to %s. Something abstract is coming down to earth, where it can finally be handled.\n",
+    "Past and future share %s; only the present steps into %s. The detour is the point.\n",
+};
+static const char *const RWS_DOMINANT[5] = {
+    "Fire dominates. This reading runs on will and momentum. Watch what it burns through on the way.\n",
+    "Water dominates. Feeling and intuition carry this; facts come second to what you sense.\n",
+    "Air dominates. This is about thought, choice and what gets said. Ideas are the terrain.\n",
+    "Earth dominates. This is practical, slow and real: bodies, money, ground. Nothing here is abstract.\n",
+    "Three different elements, none in charge. The reading is balanced and will not tip until you lean on it.\n",
+};
+static const char *const RWS_TRANSITION[4] = {
+    "%s and %s share %s, so the movement between them is smooth. Nothing resists the change.\n",
+    "%s (%s) and %s (%s) quench each other: drive meets feeling, and neither wins outright.\n",
+    "%s (%s) and %s (%s) sit on opposed elements: ideas against ground. One has to yield to the other.\n",
+    "%s (%s) feeds %s (%s). The elements are friendly, so this transition costs less than it looks.\n",
+};
+static const DeckReadingStyle RWS_READING_STYLE = {
+    RWS_ROW_NAME, RWS_ROW_GLOSS, RWS_ARC, RWS_PLANE, RWS_DOMINANT,
+    RWS_TRANSITION,
+    "The three numbers add to %s. That names %s as the card beneath the spread. %s\n",
+    "It is already on the table, in the %s position, which doubles its weight.\n",
+};
+
+// GPTarot keeps the same major-card identities for now, but its first reading
+// pass is image-led and more intuitive than the RWS reading. Its card table
+// and curated pair prose can be split out independently in the next content
+// pass without changing the engine again.
+static const char *const GPTAROT_ROW_NAME[4] = {
+    "the first image", "the visible world", "the turning inward", "the larger pattern"};
+static const char *const GPTAROT_ROW_GLOSS[4] = {
+    "the impulse before a choice",
+    "what is happening around you",
+    "what this asks you to feel and understand",
+    "the pattern only distance reveals"};
+static const char *const GPTAROT_ARC[4] = {
+    "The sequence brightens from %s to %s. Follow the images forward: each one opens the next door.\n",
+    "The sequence turns back from %s to %s. An older image is returning, but you meet it with different eyes.\n",
+    "%s is the image everything currently gathers around. Past and future frame it; the present is where the signal is strongest.\n",
+    "%s is the quiet image between two louder ones. Do not mistake the pause for an ending.\n",
+};
+static const char *const GPTAROT_PLANE[4] = {
+    "All three images belong to %s: %s. Stay with what this layer is showing you.\n",
+    "The reading moves from %s into %s. What starts as %s becomes %s.\n",
+    "The reading comes down from %s to %s. A feeling or symbol is asking to become something you can do.\n",
+    "Past and future share %s; the present moves through %s. The contrast is part of the message.\n",
+};
+static const char *const GPTAROT_DOMINANT[5] = {
+    "Fire is loud here. Let desire show you where the energy wants to go, then give it a shape.\n",
+    "Water is loud here. Notice the feeling before you explain it away; the image is speaking through it.\n",
+    "Air is loud here. A thought, word or choice changes the picture. Name it plainly.\n",
+    "Earth is loud here. The message wants a body: a boundary, a task, a place or a next step.\n",
+    "No element takes the lead. Let the images speak together instead of forcing one answer too soon.\n",
+};
+static const char *const GPTAROT_TRANSITION[4] = {
+    "%s and %s share %s, so the story flows naturally between them. Notice what repeats.\n",
+    "%s (%s) and %s (%s) pull in different directions: instinct meets feeling. The tension is information.\n",
+    "%s (%s) and %s (%s) pull in different directions: thought meets the tangible world. Find the bridge.\n",
+    "%s (%s) feeds %s (%s). This is the easiest transition in the spread; use its momentum.\n",
+};
+static const DeckReadingStyle GPTAROT_READING_STYLE = {
+    GPTAROT_ROW_NAME, GPTAROT_ROW_GLOSS, GPTAROT_ARC, GPTAROT_PLANE,
+    GPTAROT_DOMINANT, GPTAROT_TRANSITION,
+    "The images add to %s, revealing %s beneath the spread. Its deeper signal is: %s\n",
+    "That image is already present in the %s position, so its message is doubled.\n",
+};
+
 const DeckDefinition DECKS[] = {
-    {"rws", "Rider-Waite-Smith", "rws", CARDS, RWS_GLYPHS, RWS_VALUES,
-     RWS_PAIRS, sizeof(RWS_PAIRS) / sizeof(RWS_PAIRS[0]), MAJOR_COUNT},
-    // GPTarot is an alternate artwork pack for the same Major Arcana
-    // identities and meanings. Its asset directory contains one selected
-    // illustration per card; the semantic tables remain shared with RWS.
-    {"gptarot", "GPTarot", "gptarot", CARDS, RWS_GLYPHS, RWS_VALUES,
-     RWS_PAIRS, sizeof(RWS_PAIRS) / sizeof(RWS_PAIRS[0]), MAJOR_COUNT},
+    {"rws", "Rider-Waite-Smith", "rws", nullptr, CARDS, RWS_GLYPHS, RWS_VALUES,
+     RWS_PAIRS, sizeof(RWS_PAIRS) / sizeof(RWS_PAIRS[0]), MAJOR_COUNT,
+     &RWS_READING_STYLE},
+    {"gptarot", "GPTarot", "gptarot", "back", GPTAROT_CARDS,
+     GPTAROT_GLYPHS, GPTAROT_VALUES, GPTAROT_PAIRS, GPTAROT_PAIR_COUNT,
+     MAJOR_COUNT, &GPTAROT_READING_STYLE},
+    // Thoth semantics are installed now. Its canonical Crowley-Harris
+    // paintings are not redistributed here; a null assetDir makes the
+    // firmware use the procedural face placeholder until licensed artwork is
+    // supplied.
+    {"thoth", "Thoth", nullptr, nullptr, THOTH_CARDS, THOTH_GLYPHS,
+     THOTH_VALUES, THOTH_PAIRS, THOTH_PAIR_COUNT, MAJOR_COUNT,
+     &THOTH_READING_STYLE},
+    {"marseille", "Marseille", "marseille", nullptr, MARSEILLE_CARDS,
+     nullptr, MARSEILLE_VALUES, MARSEILLE_PAIRS, MARSEILLE_PAIR_COUNT,
+     MAJOR_COUNT, &MARSEILLE_READING_STYLE},
 };
 
 const uint8_t DECK_COUNT = sizeof(DECKS) / sizeof(DECKS[0]);

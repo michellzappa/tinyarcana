@@ -1,5 +1,7 @@
 // Card bitmaps from LittleFS (data/<env>/decks/<id>/NN_168x295.565), cached
-// in PSRAM, blitted with rounded corners and scaled for both UI sizes.
+// in PSRAM, blitted with rounded corners and scaled for both UI sizes. A deck
+// may also provide <back>_168x295.565; decks without one use the procedural
+// back below.
 #pragma once
 
 #include <Arduino.h>
@@ -28,6 +30,7 @@ void cardPreload(uint8_t idx);
 void cardDrawFace(uint8_t idx, CardSize sz, int16_t cx, int16_t y, float squash);
 // Face resampled from the large bitmap to any w x h (zoom animation).
 void cardDrawFaceScaled(uint8_t idx, int16_t cx, int16_t y, int16_t w, int16_t h);
-// Procedural back at any size. glow 0..1 lifts the gold.
+// Deck back at any size. Uses the active deck's bitmap when available and
+// otherwise draws the procedural RWS back; glow 0..1 lifts the procedural gold.
 void cardDrawBack(int16_t cx, int16_t y, int16_t w, int16_t h, float squash,
                   float glow);

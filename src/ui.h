@@ -18,7 +18,12 @@ struct Spread {
   Reading reading;
   uint8_t deck;
   bool revealed[3];
+  // 3 for past / present / future, 1 for a single card. Held on the spread
+  // rather than read from settings, so a reading in progress keeps its shape
+  // if the setting changes underneath it.
+  uint8_t count;
 };
+
 
 // Spread geometry, shared with hit testing in main.cpp.
 #if defined(BOARD_ROUND_175)
@@ -32,15 +37,19 @@ static const int16_t SLOT_CX[3] = {66, 184, 302};
 static const int16_t SLOT_Y = 118;
 static const int16_t DECK_CX = 184, DECK_Y = 118, DECK_W = 150, DECK_H = 264;
 #endif
+// A single card sits at index 0 but shows in the middle slot and reads as the
+// present: a one-card draw is about now, not about the past.
+static inline int16_t slotCx(uint8_t count, uint8_t i) { return SLOT_CX[count == 1 ? 1 : i]; }
+static inline uint8_t slotTextPos(uint8_t count, uint8_t i) { return count == 1 ? 1 : i; }
 
 void uiBoot(uint32_t ageMs, bool fsOk, bool touchOk);
 void uiDeck(uint32_t nowMs, bool holding, float progress);
 void uiMenu(uint8_t selected);
 void uiHelp();
 void uiSettings(const AppSettings &settings, uint8_t selected);
-void uiDeal(float p);
+void uiDeal(float p, uint8_t count);
 // The reverse: the three cards fly back into the stack, face down.
-void uiGather(float p);
+void uiGather(float p, uint8_t count);
 // flipping: slot index mid-flip or -1; flipPhase 0..1.
 void uiSpread(const Spread &s, int8_t flipping, float flipPhase);
 // The tapped card grows from its slot to fill the glass; p 0..1.
@@ -55,4 +64,4 @@ void uiInner(const Spread &s, uint8_t page, uint8_t pages);
 bool uiDeckHit(int16_t x, int16_t y);
 int8_t uiMenuHit(int16_t x, int16_t y);
 int8_t uiSettingsHit(int16_t x, int16_t y);
-int8_t uiSlotHit(int16_t x, int16_t y);
+int8_t uiSlotHit(const Spread &s, int16_t x, int16_t y);

@@ -13,6 +13,7 @@
 // more than that the firmware truncates too, so this reports overruns rather
 // than growing quietly.
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "tarot_data.h"
@@ -36,7 +37,9 @@ static void jsonEscape(const char *s) {
   }
 }
 
-int main() {
+int main(int argc, char **argv) {
+  const uint8_t deckId = argc > 1 ? (uint8_t)atoi(argv[1]) : 0;
+  const DeckDefinition &deck = deckById(deckId);
   char buf[BUF];
   long spreads = 0, truncated = 0;
   size_t longest = 0;
@@ -48,7 +51,6 @@ int main() {
         if (c == a || c == b) continue;
 
         Reading r{{(uint8_t)a, (uint8_t)b, (uint8_t)c}};
-        const DeckDefinition &deck = deckById(0);
         const uint8_t hidden = tarotHiddenCard(deck, r);
         const size_t len = tarotCompose(deck, r, buf, sizeof buf);
 

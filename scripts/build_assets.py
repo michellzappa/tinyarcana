@@ -70,29 +70,41 @@ def rgb565(r, g, b):
     return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
 
 
+def build_bitmap(src, path):
+    im = Image.open(src).convert("RGB")
+    w, h = DECK_SIZE
+    small = im.resize((w, h), Image.LANCZOS)
+    px = small.load()
+    out = bytearray(w * h * 2)
+    i = 0
+    for y in range(h):
+        for x in range(w):
+            r, g, b = px[x, y]
+            struct.pack_into("<H", out, i, rgb565(r, g, b))
+            i += 2
+    with open(path, "wb") as f:
+        f.write(out)
+    return len(out)
+
+
 def build_cards(env, deck_id, source_dir):
     out_dir = os.path.join(DATA_DIR, env, "decks", deck_id)
     os.makedirs(out_dir, exist_ok=True)
     total = 0
     for n in range(22):
         src = os.path.join(source_dir, "%02d.webp" % n)
-        im = Image.open(src).convert("RGB")
-        w, h = DECK_SIZE
-        small = im.resize((w, h), Image.LANCZOS)
-        px = small.load()
-        out = bytearray(w * h * 2)
-        i = 0
-        for y in range(h):
-            for x in range(w):
-                r, g, b = px[x, y]
-                struct.pack_into("<H", out, i, rgb565(r, g, b))
-                i += 2
-        path = os.path.join(out_dir, "%02d_%dx%d.565" % (n, w, h))
-        with open(path, "wb") as f:
-            f.write(out)
-        total += len(out)
+        path = os.path.join(out_dir, "%02d_%dx%d.565" % (n, *DECK_SIZE))
+        total += build_bitmap(src, path)
     print("cards: %s/%s 22 x %s -> %s (%d KB)" %
           (env, deck_id, DECK_SIZE, os.path.relpath(out_dir, ROOT), total // 1024))
+
+    back_src = os.path.join(source_dir, "back.webp")
+    if os.path.isfile(back_src):
+        back_path = os.path.join(out_dir, "back_%dx%d.565" % DECK_SIZE)
+        back_bytes = build_bitmap(back_src, back_path)
+        print("back:  %s/%s %s -> %s (%d KB)" %
+              (env, deck_id, DECK_SIZE, os.path.relpath(back_path, ROOT),
+               back_bytes // 1024))
 
 
 def load_font(file, size, weight):

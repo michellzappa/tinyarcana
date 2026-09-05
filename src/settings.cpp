@@ -7,7 +7,7 @@
 
 static const uint8_t DEFAULT_BRIGHTNESS = 200;
 
-AppSettings appSettings = {0, DEFAULT_BRIGHTNESS, true};
+AppSettings appSettings = {0, DEFAULT_BRIGHTNESS, true, false};
 
 static Preferences prefs;
 
@@ -17,6 +17,7 @@ void settingsBegin() {
   if (appSettings.deckId >= DECK_COUNT) appSettings.deckId = 0;
   appSettings.brightness = prefs.getUChar("bright", DEFAULT_BRIGHTNESS);
   appSettings.showHiddenCard = prefs.getBool("hidden", true);
+  appSettings.singleCard = prefs.getBool("single", false);
 }
 
 void settingsApplyHardware() {
@@ -27,10 +28,11 @@ void settingsSave() {
   prefs.putUChar("deck", appSettings.deckId);
   prefs.putUChar("bright", appSettings.brightness);
   prefs.putBool("hidden", appSettings.showHiddenCard);
+  prefs.putBool("single", appSettings.singleCard);
 }
 
 void settingsReset() {
-  appSettings = {0, DEFAULT_BRIGHTNESS, true};
+  appSettings = {0, DEFAULT_BRIGHTNESS, true, false};
   settingsSave();
   settingsApplyHardware();
 }

@@ -45,7 +45,7 @@ static Screen screen = SCR_BOOT;
 static uint32_t enterMs = 0;
 static bool fsOk = false, touchOk = false;
 
-static Spread spread;
+static Spread spread = {{{0, 0, 0}}, 0, {false, false, false}, 3};
 static int8_t flipSlot = -1;
 static uint8_t cardPos = 0;
 static uint8_t innerPage = 0, innerPages = 1;
@@ -66,19 +66,26 @@ static void newReading() {
   spread.deck = appSettings.deckId;
   const DeckDefinition &deck = deckById(spread.deck);
   cardsSelectDeck(deck);
-  entropyDraw(spread.reading.card, 3, deck.cardCount);
+  spread.count = appSettings.singleCard ? 1 : 3;
+  entropyDraw(spread.reading.card, spread.count, deck.cardCount);
   for (uint8_t i = 0; i < 3; i++) spread.revealed[i] = false;
   innerReady = false;
-  Serial.printf("draw: %s / %s / %s  (stirs=%lu)\n",
-                deckCard(deck, spread.reading.card[0]).name,
-                deckCard(deck, spread.reading.card[1]).name,
-                deckCard(deck, spread.reading.card[2]).name,
-                (unsigned long)entropyStirs());
-  for (uint8_t i = 0; i < 3; i++) cardPreload(spread.reading.card[i]);
+  if (spread.count == 1) {
+    Serial.printf("draw: %s  (stirs=%lu)\n", deckCard(deck, spread.reading.card[0]).name,
+                  (unsigned long)entropyStirs());
+  } else {
+    Serial.printf("draw: %s / %s / %s  (stirs=%lu)\n",
+                  deckCard(deck, spread.reading.card[0]).name,
+                  deckCard(deck, spread.reading.card[1]).name,
+                  deckCard(deck, spread.reading.card[2]).name,
+                  (unsigned long)entropyStirs());
+  }
+  for (uint8_t i = 0; i < spread.count; i++) cardPreload(spread.reading.card[i]);
 }
 
 static bool allRevealed() {
-  return spread.revealed[0] && spread.revealed[1] && spread.revealed[2];
+  for (uint8_t i = 0; i < spread.count; i++) if (!spread.revealed[i]) return false;
+  return true;
 }
 
 static void startFlip(uint8_t slot) {
@@ -135,6 +142,9 @@ static void adjustSetting() {
     break;
   case 2:
     appSettings.showHiddenCard = !appSettings.showHiddenCard;
+    break;
+  case 3:
+    appSettings.singleCard = !appSettings.singleCard;
     break;
   }
   settingsSave();
@@ -255,7 +265,7 @@ void loop() {
         go(SCR_MENU);
       }
     } else if (in.aPressed) {
-      settingsCursor = (uint8_t)((settingsCursor + 1) % 3);
+      settingsCursor = (uint8_t)((settingsCursor + 1) % 4);
     } else if (in.bPressed) {
       adjustSetting();
     } else if (in.aLong) {
@@ -266,16 +276,16 @@ void loop() {
   case SCR_DEAL: {
     const float p = age / (float)DEAL_MS;
     // One tick as each card leaves the deck (uiDeal starts card i at i*0.22).
-    while (dealt < 3 && p >= dealt * 0.22f) dealt++;
-    uiDeal(p);
+    while (dealt < spread.count && p >= dealt * 0.22f) dealt++;
+    uiDeal(p, spread.count);
     if (age >= DEAL_MS) go(SCR_SPREAD);
     break;
   }
 
   case SCR_GATHER: {
     const float p = age / (float)GATHER_MS;
-    while (dealt < 3 && p >= dealt * 0.22f) dealt++;
-    uiGather(p);
+    while (dealt < spread.count && p >= dealt * 0.22f) dealt++;
+    uiGather(p, spread.count);
     if (age >= GATHER_MS) go(SCR_DECK);
     break;
   }
@@ -283,7 +293,7 @@ void loop() {
   case SCR_SPREAD: {
     uiSpread(spread, -1, 0);
     if (in.tap) {
-      const int8_t slot = uiSlotHit(in.x, in.y);
+      const int8_t slot = uiSlotHit(spread, in.x, in.y);
       if (slot >= 0) {
         if (!spread.revealed[slot]) startFlip((uint8_t)slot);
         else zoomCard((uint8_t)slot);
@@ -292,15 +302,16 @@ void loop() {
     if (in.aPressed) {
       // BOOT: turn the next card, or walk into the first card once all are up.
       int8_t next = -1;
-      for (uint8_t i = 0; i < 3; i++) if (!spread.revealed[i]) { next = (int8_t)i; break; }
+      for (uint8_t i = 0; i < spread.count; i++) if (!spread.revealed[i]) { next = (int8_t)i; break; }
       if (next >= 0) startFlip((uint8_t)next);
       else zoomCard(0);
     }
     if (in.bPressed) {
-      if (allRevealed()) openInner();
+      // The inner reading needs an arc, elements, a pair and a quintessence.
+      // A single card has none of those, so PWR only turns it.
+      if (allRevealed()) { if (spread.count == 3) openInner(); }
       else {
-        // Turn what is still face down first; PWR again opens the reading.
-        for (uint8_t i = 0; i < 3; i++) if (!spread.revealed[i]) { startFlip(i); break; }
+        for (uint8_t i = 0; i < spread.count; i++) if (!spread.revealed[i]) { startFlip(i); break; }
       }
     }
     break;
@@ -327,7 +338,7 @@ void loop() {
   case SCR_CARD:
     uiCardBig(spread, cardPos);
     if (in.tap || in.aPressed) go(SCR_MEANING);
-    else if (in.swipeLeft) { if (cardPos < 2) openCard(cardPos + 1); else backToSpread(); }
+    else if (in.swipeLeft) { if (cardPos + 1 < spread.count) openCard(cardPos + 1); else backToSpread(); }
     else if (in.swipeRight) { if (cardPos > 0) openCard(cardPos - 1); else backToSpread(); }
     if (in.bPressed) openInner();
     break;
@@ -335,8 +346,8 @@ void loop() {
   case SCR_MEANING:
     uiMeaning(spread, cardPos);
     if (in.tap) backToSpread();
-    else if (in.aPressed) { if (cardPos < 2) openCard(cardPos + 1); else backToSpread(); }
-    else if (in.swipeLeft) { if (cardPos < 2) openCard(cardPos + 1); else backToSpread(); }
+    else if (in.aPressed) { if (cardPos + 1 < spread.count) openCard(cardPos + 1); else backToSpread(); }
+    else if (in.swipeLeft) { if (cardPos + 1 < spread.count) openCard(cardPos + 1); else backToSpread(); }
     else if (in.swipeRight) { if (cardPos > 0) openCard(cardPos - 1); else backToSpread(); }
     if (in.bPressed) openInner();
     break;
