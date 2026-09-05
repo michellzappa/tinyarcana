@@ -11,9 +11,19 @@ struct AaGlyph {
   uint8_t adv;
 };
 
+// glyphs[] is two blocks. The first is dense: one entry per codepoint from
+// first to last, which is printable ASCII and covers almost every character
+// drawn. The second holds the accented and typographic codepoints, in the
+// same order as codes[], found by binary search.
+//
+// codes[] is uint16_t, so the format stops at U+FFFF. That is deliberate: it
+// reaches every Latin, Greek and Cyrillic script and excludes CJK, which a
+// per-glyph alpha table of this shape could not carry anyway.
 struct AaFont {
   const uint8_t *alpha;
   const AaGlyph *glyphs;
+  const uint16_t *codes;   // sorted, `extra` entries, all above `last`
+  uint16_t extra;
   uint8_t first, last;
   uint8_t lineH;
   uint8_t ascent;

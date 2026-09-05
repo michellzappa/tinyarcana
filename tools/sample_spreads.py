@@ -20,9 +20,11 @@ import argparse, collections, json, random, re, os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def card_names():
-    src = open(os.path.join(ROOT, "src", "tarot_data.h"), encoding="utf8").read()
-    return re.findall(r'\{"([^"]+)",\s*"[IVXL0-9]*",\s*EL_', src)
+def card_names(deck="rws", lang="en"):
+    """Card names from the language source, which is where they now live."""
+    path = os.path.join(ROOT, "assets", "lang", lang, deck + ".json")
+    with open(path, encoding="utf8") as f:
+        return [c["name"] for c in json.load(f)["cards"]]
 
 
 def templater(names):

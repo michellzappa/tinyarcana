@@ -19,5 +19,9 @@ struct Reading {
 uint8_t tarotHiddenCard(const DeckDefinition &deck, const Reading &r);
 
 // Writes paragraphs separated by '\n'. '#' heading, '>' italic. Returns length.
-size_t tarotCompose(const DeckDefinition &deck, const Reading &r, char *buf,
-                    size_t n);
+//
+// Both string sources are arguments rather than globals so the engine still
+// compiles on the host against tools/host_shim: tools/dump_readings.cpp loads
+// the same packs through the stdio half of packLoad().
+size_t tarotCompose(const DeckText &t, const StringPack &ui, const Reading &r,
+                    char *buf, size_t n);

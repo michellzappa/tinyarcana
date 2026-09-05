@@ -116,19 +116,37 @@ BUMPED2 = dict(label=16, labelY=78, name=34, nameY=122, keys=19, keysY=154, rule
                dotsY=416, flow=True, gap=50, floor=64, capGap=44)
 
 
-def longest_cards(n=3):
-    """The n longest position texts in src/tarot_data.h, as card dicts."""
+def longest_cards(n=3, deck="rws", lang="en"):
+    """The n longest position texts, as card dicts.
+
+    The text comes from assets/lang/<lang>/<deck>.json and the numerals and
+    elements from src/deck.cpp, which is the split the firmware itself uses:
+    a translation changes the words, never the attributions.
+    """
+    import json
     import re
-    src = open(HERE + "/../src/tarot_data.h").read()
-    names, glyphs = load_glyphs()
+    src = open(HERE + "/../src/deck.cpp", encoding="utf8").read()
     gsrc = open(HERE + "/../src/glyphs.cpp").read()
     card_glyphs = re.findall(r"  (G_[A-Z]+),\s*// \d+", gsrc)
-    entries = re.findall(r'\{"([^"]+)", "([^"]+)", EL_([A-Z]+), "([^"]+)", "([^"]+)",\s*"[^"]*",\s*"([^"]*)",\s*"([^"]*)",\s*"([^"]*)",', src)
+
+    def table(name, pattern):
+        m = re.search(name + r"\[MAJOR_COUNT\] = \{(.*?)\};", src, re.S)
+        return re.findall(pattern, m.group(1)) if m else []
+
+    numerals = table(deck + "_NUMERALS", r'"([^"]*)"')
+    elements = [e[3:] for e in table(deck + "_ELEMENTS", r"(EL_[A-Z]+)")]
+
+    with open(HERE + "/../assets/lang/%s/%s.json" % (lang, deck), encoding="utf8") as f:
+        cards = json.load(f)["cards"]
+
     out = []
-    for i, (name, num, el, ruler, keys, past, present, future) in enumerate(entries):
-        for pos, text in (("Past", past), ("Present", present), ("Future", future)):
-            cap = "%s   %s   %s" % (num, ruler.upper(), el) if ruler.upper() != el else "%s   %s" % (num, el)
-            out.append(dict(pos=pos, name=name, keys=keys, glyph=card_glyphs[i], cap=cap, text=text))
+    for i, c in enumerate(cards):
+        num, el, ruler = numerals[i], elements[i], c["ruler"].upper()
+        cap = "%s   %s   %s" % (num, ruler, el) if ruler != el else "%s   %s" % (num, el)
+        glyph = card_glyphs[i] if i < len(card_glyphs) else "G_AIR"
+        for pos in ("past", "present", "future"):
+            out.append(dict(pos=pos.capitalize(), name=c["name"], keys=c["keywords"],
+                            glyph=glyph, cap=cap, text=c[pos]))
     out.sort(key=lambda c: -len(c["text"]))
     return out[:n]
 

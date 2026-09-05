@@ -25,18 +25,53 @@ uint16_t blend565(uint16_t bg, uint16_t fg, uint8_t a) {
   return (uint16_t)((r << 11) | (g << 5) | b);
 }
 
-static const AaGlyph *glyphFor(const AaFont &f, char c) {
-  uint8_t u = (uint8_t)c;
-  if (u < f.first || u > f.last) u = '?';
-  return &f.glyphs[u - f.first];
+// One UTF-8 codepoint, advancing *s past it. Malformed input yields U+FFFD
+// and consumes one byte, so a bad string still terminates.
+static uint32_t utf8Next(const char **s) {
+  const uint8_t *p = (const uint8_t *)*s;
+  const uint8_t c = p[0];
+  uint32_t cp;
+  uint8_t len;
+  if (c < 0x80) { cp = c; len = 1; }
+  else if ((c & 0xE0) == 0xC0) { cp = c & 0x1F; len = 2; }
+  else if ((c & 0xF0) == 0xE0) { cp = c & 0x0F; len = 3; }
+  else if ((c & 0xF8) == 0xF0) { cp = c & 0x07; len = 4; }
+  else { *s += 1; return 0xFFFD; }
+  for (uint8_t i = 1; i < len; i++) {
+    if ((p[i] & 0xC0) != 0x80) { *s += 1; return 0xFFFD; }
+    cp = (cp << 6) | (p[i] & 0x3F);
+  }
+  *s += len;
+  return cp;
+}
+
+static const AaGlyph *glyphFor(const AaFont &f, uint32_t cp) {
+  // Printable ASCII is almost every glyph drawn, so it indexes directly.
+  if (cp >= f.first && cp <= f.last) return &f.glyphs[cp - f.first];
+  if (cp <= 0xFFFF && f.extra) {
+    uint16_t lo = 0, hi = f.extra;
+    while (lo < hi) {
+      const uint16_t mid = (uint16_t)(lo + (hi - lo) / 2);
+      if (f.codes[mid] < cp) lo = (uint16_t)(mid + 1);
+      else if (f.codes[mid] > cp) hi = mid;
+      else return &f.glyphs[f.last - f.first + 1 + mid];
+    }
+  }
+  return &f.glyphs['?' - f.first];
 }
 
 int16_t txtWidth(const AaFont &f, const char *s, int16_t n, int8_t tracking) {
   if (!s) return 0;
   if (n < 0) n = (int16_t)strlen(s);
+  const char *p = s;
+  const char *const end = s + n;
   int32_t w = 0;
-  for (int16_t i = 0; i < n; i++) w += glyphFor(f, s[i])->adv + tracking;
-  if (n > 0) w -= tracking;
+  bool any = false;
+  while (p < end) {
+    w += glyphFor(f, utf8Next(&p))->adv + tracking;
+    any = true;
+  }
+  if (any) w -= tracking;
   return (int16_t)w;
 }
 
@@ -64,8 +99,10 @@ void txtDraw(const AaFont &f, const char *s, int16_t x, int16_t baseline,
              uint16_t col, int16_t n, int8_t tracking) {
   if (!s) return;
   if (n < 0) n = (int16_t)strlen(s);
-  for (int16_t i = 0; i < n; i++) {
-    const AaGlyph *g = glyphFor(f, s[i]);
+  const char *p = s;
+  const char *const end = s + n;
+  while (p < end) {
+    const AaGlyph *g = glyphFor(f, utf8Next(&p));
     drawGlyph(f, g, x, baseline, col);
     x = (int16_t)(x + g->adv + tracking);
   }

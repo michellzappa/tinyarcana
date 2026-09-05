@@ -81,6 +81,57 @@ sent the model budget down a blind alley. The firmware only ever opens
 `/decks/<id>/...`. If the boot log's `littlefs: <used>/<total> KB` looks larger
 than the deck packs justify, list `data/<env>/` before believing it.
 
+## Languages are data, not builds
+
+Every string a reader sees lives in `assets/lang/<code>/`, compiled by
+`scripts/build_strings.py` into packs on the filesystem. **Adding a language is
+those JSON files plus `uploadfs`. It is never a firmware build.**
+
+```sh
+python3 scripts/build_strings.py
+pio run -e amoled-175-round -t uploadfs
+```
+
+```
+assets/lang/en/ui.json          UI strings and the engine's own headings
+assets/lang/en/<deck>.json      card text, pair prose, reading templates
+    ->
+data/<env>/lang/<code>/ui.pack
+data/<env>/lang/<code>/<deck>.pack
+src/string_ids.h                generated enum; `en` is canonical
+```
+
+All three decks plus the UI cost about 45 KB a language. One deck's artwork is
+2.08 MiB, so languages are free by comparison.
+
+`en` is the schema. The build fails rather than shipping a pack that is missing
+a key or has a deck with a different card or pair count, because a short pack
+would otherwise read plausible strings out of the wrong slots. `langApply()`
+falls back to `en` when a pack is missing, so a bad language cannot leave the
+device wordless.
+
+**A deck owns what a translation cannot change.** `src/deck.cpp` holds the
+artwork, the values, the Roman numerals, the elemental attributions and which
+pairs of cards relate. The pack holds every sentence. Marseille sets
+`nativeNames`, so its French titles stay French in every language: the titles
+are the deck, not a translation of the Rider-Waite-Smith ones.
+
+**Never `printf` a pack string.** A template is written by a translator, and
+`printf` reads an argument that is not there the moment someone types `%d`.
+`strFormat()` in `src/strings.cpp` fills `%1` to `%4` and nothing else; the
+engine's `appf()` and the UI both go through it.
+
+**A template must never depend on the grammatical gender of what is inserted
+into it.** Both sides of every insertion are pack data, so a translator
+controls both and can rewrite around the problem. Where a language genuinely
+cannot, the pack carries separate template variants; the engine does not grow a
+case system. Slot order is the translator's: `%1` to `%4` may appear in any
+order, which is the whole reason the engine formats its own strings instead of
+calling `snprintf`.
+
+The settings screen lists whatever directories exist under `/lang`
+(`langList()`), so the firmware never carries a list of languages of its own.
+
 ## Partition table
 
 `partitions.csv`: 4 MB app (single ota_0, huge_app style), about 11.9 MiB
@@ -97,12 +148,21 @@ If the ADC or Wi-Fi are ever added, disable it first.
 
 ## Text and layout
 
-Position meanings in `src/tarot_data.h` must fit the round detail column.
+Position meanings live in `assets/lang/<code>/<deck>.json` and must fit the
+round detail column.
 Text on the round face is wrapped per line against the chord (`widthAt()` in
 `ui.cpp`), never a fixed width. The inner reading is paged by
 `txtLayout()`; a paragraph starting with `#` is a heading, `>` italic, an
 empty line a gap. `tarotCompose()` writes into a 2600-byte buffer; if the
 engine grows, grow `innerText` in `main.cpp` and `INNER_MAX_LINES` in `ui.cpp`.
+
+**The fonts carry printable ASCII plus about 80 Western European
+codepoints.** `EXTRA` in `scripts/build_assets.py` is the whole list, and
+extending it is the only thing that adds a script. Each added codepoint costs
+about 1.7 KB across the eleven fonts. `text.cpp` decodes UTF-8 and looks a
+codepoint up in a dense ASCII block first, then a sorted side table; the table
+is `uint16_t`, so the format stops at U+FFFF. CJK is out of reach for this
+architecture and always will be. A codepoint with no glyph draws `?`.
 
 **Measure text against the chord before placing it.** The round face narrows
 fast towards the bottom: 282 px of usable width at baseline 404, 172 px at 444.
@@ -166,11 +226,17 @@ remaining work. The sections below cover the tools it uses.
 compose, as JSON Lines:
 
 ```sh
-c++ -std=c++17 -O2 -I src -I tools/host_shim tools/dump_readings.cpp src/tarot_engine.cpp src/deck.cpp -o /tmp/dump_readings
+c++ -std=c++17 -O2 -I src -I tools/host_shim tools/dump_readings.cpp \
+    src/tarot_engine.cpp src/deck.cpp src/strings.cpp -o /tmp/dump_readings
+/tmp/dump_readings [deck id] [language code]
 ```
 
 Neither file is in `src/`, so PlatformIO never sees them and the shim cannot
 shadow the real `Arduino.h`.
+
+`dump_readings` reads the same language packs the firmware does, out of
+`data/amoled-175-round`, so run `scripts/build_strings.py` first and run it
+from the repository root. It takes a deck id and a language code.
 
 Numbers the dump reports, measured 2026-09-02:
 
@@ -228,6 +294,11 @@ lines reliably. Measured against prose in the reading register:
 
 **Budget 110 to 125 words, cap 130.** The round board binds. Use `fit_check.py`
 as the gate that catches the outliers, never as the thing the writer aims at.
+
+**These numbers are English.** Every table in this section and the next was
+measured against English prose. German compounds and Spanish function words
+change the words-per-line, so a new language needs its own row, measured the
+same way with `fit_check.py`. Do not assume the English budget transfers.
 
 `txtLayout()` protects headings only: it keeps a heading with the first line of
 its body. Body paragraphs straddle page breaks freely, so page one usually ends

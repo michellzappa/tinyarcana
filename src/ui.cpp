@@ -76,9 +76,12 @@ static const int16_t READ_LINE_H = 24;
 #if UI_ROUND
 static const int16_t SETTINGS_BUTTON_X = 52;
 static const int16_t SETTINGS_BUTTON_W = 362;
+// Five rows between the header and the back button. At step 62 the fifth row
+// ran under the back button at 368; 52 leaves 6 px of clearance and keeps a
+// 46 px touch target, which is still well over a fingertip.
 static const int16_t SETTINGS_BUTTON_TOP = 108;
-static const int16_t SETTINGS_BUTTON_H = 54;
-static const int16_t SETTINGS_BUTTON_STEP = 62;
+static const int16_t SETTINGS_BUTTON_H = 46;
+static const int16_t SETTINGS_BUTTON_STEP = 52;
 static const int16_t SETTINGS_BACK_X = 116;
 static const int16_t SETTINGS_BACK_W = 234;
 static const int16_t SETTINGS_BACK_TOP = 368;
@@ -87,8 +90,8 @@ static const int16_t SETTINGS_BACK_H = 50;
 static const int16_t SETTINGS_BUTTON_X = 24;
 static const int16_t SETTINGS_BUTTON_W = SCR_W - 48;
 static const int16_t SETTINGS_BUTTON_TOP = 112;
-static const int16_t SETTINGS_BUTTON_H = 58;
-static const int16_t SETTINGS_BUTTON_STEP = 68;
+static const int16_t SETTINGS_BUTTON_H = 50;
+static const int16_t SETTINGS_BUTTON_STEP = 58;
 static const int16_t SETTINGS_BACK_X = 82;
 static const int16_t SETTINGS_BACK_W = SCR_W - 164;
 static const int16_t SETTINGS_BACK_TOP = 346;
@@ -167,10 +170,31 @@ static void dots(uint8_t n, uint8_t active, int16_t y) {
   }
 }
 
+// Uppercase, UTF-8 aware over the charset the fonts carry. toupper() alone
+// leaves every byte above 0x7F untouched, which renders "CAFE" as "CAFe" with
+// the accent still lowercase. The two-byte rules below cover Latin-1 and the
+// three Latin Extended-A letters in EXTRA; every case here keeps its length,
+// so the buffer arithmetic stays simple. Lowercase sharp s and y-diaeresis
+// have no same-length uppercase and pass through unchanged.
 static void upper(char *dst, size_t n, const char *s) {
-  size_t i = 0;
-  for (; s[i] && i + 1 < n; i++) dst[i] = (char)toupper((unsigned char)s[i]);
-  dst[i] = 0;
+  size_t i = 0, j = 0;
+  while (s[i] && j + 1 < n) {
+    const uint8_t c = (uint8_t)s[i];
+    if (c < 0x80) {
+      dst[j++] = (char)toupper(c);
+      i++;
+      continue;
+    }
+    const uint8_t d = (uint8_t)s[i + 1];
+    if (!d || j + 2 >= n) break;
+    uint8_t e = d;
+    if (c == 0xC3 && d >= 0xA0 && d <= 0xBE && d != 0xB7) e = (uint8_t)(d - 0x20);
+    else if (c == 0xC5 && (d == 0x93 || d == 0xA1 || d == 0xBE)) e = (uint8_t)(d - 1);
+    dst[j++] = (char)c;
+    dst[j++] = (char)e;
+    i += 2;
+  }
+  dst[j] = 0;
 }
 
 // ---------------- Boot ----------------
@@ -253,8 +277,8 @@ void uiBoot(uint32_t ageMs, bool fsOk, bool touchOk) {
     txtDraw(lora_name, "arcana", (int16_t)(x0 + wTiny), titleY,
             blend565(COL_BG, COL_IVORY, a));
   }
-  if (!fsOk) hint("CARD IMAGES MISSING", "pio run -t uploadfs");
-  else if (!touchOk) hint("TOUCH NOT FOUND");
+  if (!fsOk) hint(T(UI_FS_MISSING), "pio run -t uploadfs");
+  else if (!touchOk) hint(T(UI_TOUCH_MISSING));
 }
 
 // ---------------- Deck ----------------
@@ -334,21 +358,21 @@ void uiDeck(uint32_t nowMs, bool holding, float progress) {
   const bool one = appSettings.singleCard;
   if (one) {
     // One card is picked with a touch, so there is no charge to show.
-    hint("TOUCH TO PICK A CARD");
+    hint(T(UI_PICK_CARD));
   } else if (holding) {
     rimFill(progress);
-    hint(progress >= 1.0f ? "RELEASE TO CUT" : "SHUFFLING . . .");
+    hint(progress >= 1.0f ? T(UI_RELEASE_TO_CUT) : T(UI_SHUFFLING));
   } else {
-    hint("HOLD THE DECK TO SHUFFLE");
+    hint(T(UI_HOLD_TO_SHUFFLE));
   }
 }
 
 // ---------------- Menu ----------------
 void uiMenu(uint8_t selected) {
   gfx->clear(COL_BG);
-  txtCenter(lora_head, "Menu", CX, HEAD_Y, COL_IVORY);
+  txtCenter(lora_head, T(UI_MENU_TITLE), CX, HEAD_Y, COL_IVORY);
   rule(HEAD_Y + 14, COL_GOLD_DIM);
-  const char *items[] = {"HOW TO READ", "SETTINGS"};
+  const char *items[] = {T(UI_MENU_HELP), T(UI_MENU_SETTINGS)};
   for (uint8_t i = 0; i < 2; i++) {
     const int16_t top = (int16_t)(MENU_BUTTON_TOP + i * MENU_BUTTON_STEP);
     const bool isSelected = i == selected;
@@ -367,30 +391,30 @@ void uiMenu(uint8_t selected) {
                      SETTINGS_BACK_H, 12, blend565(COL_BG, COL_RULE, 150));
   gfx->drawRoundRect(SETTINGS_BACK_X, SETTINGS_BACK_TOP, SETTINGS_BACK_W,
                      SETTINGS_BACK_H, 12, COL_GOLD_DIM);
-  txtCenter(lora_label, "BACK TO DECK", CX,
+  txtCenter(lora_label, T(UI_BACK_TO_DECK), CX,
             (int16_t)(SETTINGS_BACK_TOP + 33), COL_GOLD_DIM, 2);
 }
 
 void uiHelp() {
   gfx->clear(COL_BG);
-  txtCenter(lora_head, "How to read", CX, HEAD_Y, COL_IVORY);
+  txtCenter(lora_head, T(UI_HELP_TITLE), CX, HEAD_Y, COL_IVORY);
   rule(HEAD_Y + 14, COL_GOLD_DIM);
 
   // The two draws are different rituals, not one with pieces removed, so the
   // help describes whichever is switched on. Settings is one screen away.
-  static const char *const THREE[] = {
-      "Hold the deck to shuffle. Your touch feeds the draw, on top of the chip's hardware noise.",
-      "Release to cut. Three cards are dealt: past, present, future.",
-      "Tap a card to turn it. Tap it again to read it.",
-      "BOOT steps through the cards. Press BOOT and PWR together, or hold BOOT, to close the reading.",
-      "PWR opens the inner reading: how the three cards speak to each other.",
+  const char *const THREE[] = {
+      T(UI_HELP3_1),
+      T(UI_HELP3_2),
+      T(UI_HELP3_3),
+      T(UI_HELP3_4),
+      T(UI_HELP3_5),
   };
-  static const char *const ONE[] = {
-      "Touch the deck to pick a card. Your touch feeds the draw, on top of the chip's hardware noise.",
-      "The card arrives face down and turns itself over.",
-      "Tap it to read what it means. Tap again to send it back to the deck.",
-      "BOOT and PWR together, or hold BOOT, closes the reading at any point.",
-      "Settings switches between one card and three.",
+  const char *const ONE[] = {
+      T(UI_HELP1_1),
+      T(UI_HELP1_2),
+      T(UI_HELP1_3),
+      T(UI_HELP1_4),
+      T(UI_HELP1_5),
   };
   const char *const *lines = appSettings.singleCard ? ONE : THREE;
   int16_t y = (int16_t)(HEAD_Y + 44);
@@ -398,20 +422,22 @@ void uiHelp() {
     y = txtWrappedFn(lora_body, lines[i], widthAt, y, 20, COL_IVORY, 4);
     y = (int16_t)(y + 9);
   }
-  hint("TAP TO GO BACK");
+  hint(T(UI_TAP_TO_GO_BACK));
 }
 
 // ---------------- Settings ----------------
 void uiSettings(const AppSettings &settings, uint8_t selected) {
   gfx->clear(COL_BG);
-  txtCenter(lora_head, "Settings", CX, HEAD_Y, COL_IVORY);
+  txtCenter(lora_head, T(UI_SETTINGS_TITLE), CX, HEAD_Y, COL_IVORY);
   rule(HEAD_Y + 14, COL_GOLD_DIM);
 
-  const char *labels[] = {"DECK", "BRIGHTNESS", "BENEATH THE SPREAD", "DRAW"};
-  char value[48];
-  for (uint8_t i = 0; i < 4; i++) {
+  const char *labels[] = {T(UI_SET_DECK), T(UI_SET_BRIGHTNESS), T(UI_SET_HIDDEN),
+                          T(UI_SET_DRAW), T(UI_SET_LANGUAGE)};
+  static_assert(sizeof labels / sizeof labels[0] == SETTINGS_ROWS, "row count");
+  char value[64];
+  for (uint8_t i = 0; i < SETTINGS_ROWS; i++) {
     const int16_t top = (int16_t)(SETTINGS_BUTTON_TOP + i * SETTINGS_BUTTON_STEP);
-    const int16_t y = (int16_t)(top + 20);
+    const int16_t y = (int16_t)(top + 18);
     const bool isSelected = i == selected;
     const uint16_t border = isSelected ? COL_GOLD : COL_RULE;
     const uint16_t fill = isSelected
@@ -422,14 +448,17 @@ void uiSettings(const AppSettings &settings, uint8_t selected) {
     gfx->drawRoundRect(SETTINGS_BUTTON_X, top, SETTINGS_BUTTON_W,
                        SETTINGS_BUTTON_H, 12, border);
     if (i == 0) {
-      snprintf(value, sizeof value, "%s", deckById(settings.deckId).name);
+      snprintf(value, sizeof value, "%s", deckText.name);
     } else if (i == 1) {
       snprintf(value, sizeof value, "%u%%",
                (unsigned int)((settings.brightness * 100u + 127u) / 255u));
     } else if (i == 2) {
-      snprintf(value, sizeof value, "%s", settings.showHiddenCard ? "ON" : "OFF");
+      snprintf(value, sizeof value, "%s", settings.showHiddenCard ? T(UI_ON) : T(UI_OFF));
+    } else if (i == 3) {
+      snprintf(value, sizeof value, "%s", settings.singleCard ? T(UI_ONE_CARD) : T(UI_THREE));
     } else {
-      snprintf(value, sizeof value, "%s", settings.singleCard ? "ONE CARD" : "THREE");
+      // The language names itself, so the row reads in the language it selects.
+      snprintf(value, sizeof value, "%s", T(UI_LANGUAGE_NAME));
     }
     txtDraw(lora_small, labels[i], (int16_t)(SETTINGS_BUTTON_X + 20), y,
             isSelected ? COL_GOLD : COL_DIM, 2);
@@ -444,9 +473,9 @@ void uiSettings(const AppSettings &settings, uint8_t selected) {
                      SETTINGS_BACK_H, 12, blend565(COL_BG, COL_RULE, 150));
   gfx->drawRoundRect(SETTINGS_BACK_X, SETTINGS_BACK_TOP, SETTINGS_BACK_W,
                      SETTINGS_BACK_H, 12, COL_GOLD_DIM);
-  txtCenter(lora_label, "BACK TO MENU", CX,
+  txtCenter(lora_label, T(UI_BACK_TO_MENU), CX,
             (int16_t)(SETTINGS_BACK_TOP + 33), COL_GOLD_DIM, 2);
-  txtCenter(lora_small, "TAP AN OPTION TO CHANGE", CX, 447, COL_GOLD_DIM, 1);
+  txtCenter(lora_small, T(UI_TAP_AN_OPTION), CX, 447, COL_GOLD_DIM, 1);
 }
 
 // ---------------- Cut and deal ----------------
@@ -493,8 +522,10 @@ static void drawSlotLabel(uint8_t count, uint8_t i, uint16_t col) {
   // A single card carries no position label: there is no past to contrast it
   // with, and "PRESENT" over a lone card states the obvious.
   if (count == 1) return;
-  char buf[12];
-  upper(buf, sizeof buf, POSITION_NAME[i]);
+  // Wide enough for a translated position name in UTF-8, where an accented
+  // letter costs two bytes.
+  char buf[32];
+  upper(buf, sizeof buf, T((uint16_t)(ENG_POS_PAST + i)));
   txtCenter(lora_small, buf, SLOT_CX[i], SLOT_Y - 12, col, 2);
 }
 
@@ -522,7 +553,7 @@ static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t
   for (uint8_t i = 0; i < s.count; i++) if (s.revealed[i]) n++;
   const bool done = n == s.count;
   txtCenter(lora_head,
-            done ? "Your reading" : (s.count == 1 ? "Turn the card" : "Turn the cards"),
+            done ? T(UI_YOUR_READING) : (s.count == 1 ? T(UI_TURN_THE_CARD) : T(UI_TURN_THE_CARDS)),
             CX, HEAD_Y, COL_IVORY);
   rule(HEAD_Y + 14, COL_RULE);
 
@@ -546,7 +577,7 @@ static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t
     }
     if (s.revealed[i] && (int8_t)i != flipping) {
       const DeckDefinition &deck = deckById(s.deck);
-      txtWrapped(lora_small, deckCard(deck, idx).name,
+      txtWrapped(lora_small, deckCard(deckText, idx).name,
                  (int16_t)(sx - cardW / 2 - 2),
                  (int16_t)(SLOT_Y + cardH + 21), (int16_t)(cardW + 4), 16, COL_IVORY, 2, true);
     }
@@ -555,8 +586,8 @@ static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t
   if (s.count == 3 && n == 3 && appSettings.showHiddenCard) {
     const DeckDefinition &deck = deckById(s.deck);
     const uint8_t h = tarotHiddenCard(deck, s.reading);
-    char buf[64];
-    snprintf(buf, sizeof buf, "Beneath them: %s", deckCard(deck, h).name);
+    char buf[96];
+    strFormat(buf, sizeof buf, T(UI_BENEATH_THEM), deckCard(deckText, h).name);
 #if UI_ROUND
     // 226 px at its longest ("Beneath them: The High Priestess"), so it needs
     // a chord of at least that: 384 gives 318.
@@ -568,7 +599,7 @@ static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t
   // The hint stands only until the first card turns. After that the spread
   // says what to do by looking like a spread, and the reader has already
   // proved they know how.
-  if (n == 0) hint(s.count == 1 ? "TAP THE CARD TO TURN IT" : "TAP A CARD TO TURN IT");
+  if (n == 0) hint(s.count == 1 ? T(UI_TAP_THE_CARD) : T(UI_TAP_A_CARD));
 }
 
 // ---------------- One card, large ----------------
@@ -581,11 +612,11 @@ void uiCardBig(const Spread &s, uint8_t pos) {
   else cardDrawBack(CX, y, CARD_W[CARD_L], CARD_H[CARD_L], 1.0f, 0.2f);
 #if UI_ROUND
   if (s.count != 1) {
-    char label[24];
-    upper(label, sizeof label, POSITION_NAME[slotTextPos(s.count, pos)]);
+    char label[32];
+    upper(label, sizeof label, T((uint16_t)(ENG_POS_PAST + slotTextPos(s.count, pos))));
     txtCenter(lora_small, label, CX, 26, COL_GOLD, 3);
   }
-  txtCenter(lora_small, up ? "TAP TO READ" : "TAP TO TURN", CX, HINT_Y, COL_DIM, 1);
+  txtCenter(lora_small, up ? T(UI_TAP_TO_READ) : T(UI_TAP_TO_TURN), CX, HINT_Y, COL_DIM, 1);
 #endif
 }
 
@@ -607,9 +638,9 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   gfx->clear(COL_BG);
   const uint8_t idx = s.reading.card[pos];
   const DeckDefinition &deck = deckById(s.deck);
-  const CardInfo &c = deckCard(deck, idx);
-  char label[24];
-  upper(label, sizeof label, POSITION_NAME[slotTextPos(s.count, pos)]);
+  const CardInfo &c = deckCard(deckText, idx);
+  char label[32];
+  upper(label, sizeof label, T((uint16_t)(ENG_POS_PAST + slotTextPos(s.count, pos))));
 #if UI_ROUND
   const int16_t labelY = 78, nameY = 122, keysY = 154, ruleY = 170, bodyY = 204;
 #else
@@ -629,10 +660,10 @@ void uiMeaning(const Spread &s, uint8_t pos) {
   const int16_t glyphMaxY = DOTS_Y - 64;
   if (glyphY > glyphMaxY) glyphY = glyphMaxY;
   if (deck.glyphs) glyphDraw(deck.glyphs[idx], CX, glyphY, 46, COL_GOLD);
-  char cap[48];
-  char ruler[16], el[12];
+  char cap[96];
+  char ruler[40], el[24];
   upper(ruler, sizeof ruler, c.ruler);
-  upper(el, sizeof el, ELEMENT_NAME[c.element]);
+  upper(el, sizeof el, T((uint16_t)(ENG_EL_FIRE + c.element)));
   if (!ruler[0] || strcmp(ruler, el) == 0)
     snprintf(cap, sizeof cap, "%s   %s", c.numeral, el);
   else snprintf(cap, sizeof cap, "%s   %s   %s", c.numeral, ruler, el);
@@ -669,18 +700,18 @@ void uiInner(const Spread &s, uint8_t page, uint8_t pages) {
 #else
   const int16_t headY = 46, subY = 66, ruleY = 76;
 #endif
-  txtCenter(lora_head, "The inner reading", CX, headY, COL_IVORY);
+  txtCenter(lora_head, T(UI_INNER_TITLE), CX, headY, COL_IVORY);
   char sub[96];
   snprintf(sub, sizeof sub, "%s  /  %s  /  %s",
-           deckCard(deck, s.reading.card[0]).name,
-           deckCard(deck, s.reading.card[1]).name,
-           deckCard(deck, s.reading.card[2]).name);
+           deckCard(deckText, s.reading.card[0]).name,
+           deckCard(deckText, s.reading.card[1]).name,
+           deckCard(deckText, s.reading.card[2]).name);
   int16_t x0 = 0;
   if (txtWidth(lora_small, sub) > widthAt(subY, &x0))
     snprintf(sub, sizeof sub, "%s / %s / %s",
-             deckCard(deck, s.reading.card[0]).numeral,
-             deckCard(deck, s.reading.card[1]).numeral,
-             deckCard(deck, s.reading.card[2]).numeral);
+             deckCard(deckText, s.reading.card[0]).numeral,
+             deckCard(deckText, s.reading.card[1]).numeral,
+             deckCard(deckText, s.reading.card[2]).numeral);
   txtCenter(lora_small, sub, CX, subY, COL_DIM);
   rule(ruleY, COL_GOLD_DIM);
 
@@ -719,7 +750,7 @@ int8_t uiMenuHit(int16_t x, int16_t y) {
 
 int8_t uiSettingsHit(int16_t x, int16_t y) {
   if (x < SETTINGS_BUTTON_X || x >= SETTINGS_BUTTON_X + SETTINGS_BUTTON_W) return -1;
-  for (int8_t i = 0; i < 4; i++) {
+  for (int8_t i = 0; i < (int8_t)SETTINGS_ROWS; i++) {
     const int16_t top = (int16_t)(SETTINGS_BUTTON_TOP + i * SETTINGS_BUTTON_STEP);
     if (y >= top && y < top + SETTINGS_BUTTON_H) return i;
   }

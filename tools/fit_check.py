@@ -19,27 +19,39 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def load_font(name):
-    """Glyph advances and the first/last codepoints from src/fonts/<name>.h."""
+    """Glyph advances from src/fonts/<name>.h, keyed by codepoint.
+
+    The header holds a dense block for first..last and a sparse block in the
+    same order as codes[]; glyphFor() in src/text.cpp reads both. Flattening
+    them into one dict here keeps width() a plain lookup.
+    """
     src = open(os.path.join(ROOT, "src", "fonts", name + ".h"), encoding="utf8").read()
     body = src[src.index(name + "_glyphs[] = {"):]
     adv = [int(m) for m in re.findall(
         r"\{\s*\d+,\s*\d+,\s*\d+,\s*-?\d+,\s*-?\d+,\s*(\d+)\s*\}", body)]
-    m = re.search(r"const AaFont " + name + r"\s*=\s*\{[^,]+,[^,]+,\s*(\d+),\s*(\d+),", src)
+    m = re.search(r"const AaFont " + name + r"\s*=\s*\{[^,]+,[^,]+,[^,]+,"
+                  r"\s*\d+,\s*(\d+),\s*(\d+),", src)
     first, last = (int(m.group(1)), int(m.group(2))) if m else (32, 126)
-    return {"adv": adv, "first": first, "last": last}
+
+    codes = []
+    cm = re.search(name + r"_codes\[\] = \{(.*?)\};", src, re.S)
+    if cm:
+        codes = [int(t) for t in re.findall(r"\d+", cm.group(1))]
+
+    table = {cp: adv[cp - first] for cp in range(first, last + 1)}
+    for i, cp in enumerate(codes):
+        table[cp] = adv[last - first + 1 + i]
+    return {"adv": table, "fallback": table[ord("?")]}
 
 
 def width(font, s, tracking=0):
     """txtWidth(): sum of advances plus tracking between glyphs."""
     if not s:
         return 0
-    a, first, last = font["adv"], font["first"], font["last"]
+    a, fallback = font["adv"], font["fallback"]
     w = 0
     for ch in s:
-        o = ord(ch)
-        if o < first or o > last:
-            o = ord("?")
-        w += a[o - first] + tracking
+        w += a.get(ord(ch), fallback) + tracking
     return w - tracking
 
 

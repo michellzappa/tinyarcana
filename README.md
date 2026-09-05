@@ -114,8 +114,9 @@ src/
   deck.*            deck registry and stable deck/card access
   settings.*        persistent NVS settings
   ui.*              every screen, all painted into one PSRAM frame
-  tarot_data.h      RWS card meanings and shared data types
-  deck_content.*    GPTarot and Marseille meanings and pair prose
+  tarot_data.h      shared card data types
+  strings.*         language packs: load, look up, fill %1..%4 slots
+  string_ids.h      generated string enum (scripts/build_strings.py)
   tarot_engine.*    inner reading composer
   cards.*           LittleFS card/back bitmaps, rounded blits, procedural fallback
   text.*            anti-aliased Lora text, wrapping, paging
@@ -127,7 +128,9 @@ src/
 assets/cards/             Rider-Waite-Smith majors (public domain)
 assets/decks/             additional Major-only deck assets and instructions
 assets/fonts/             Lora (SIL OFL)
+assets/lang/<code>/       every user-facing string, per language
 scripts/build_assets.py   cards + fonts
+scripts/build_strings.py  language packs + src/string_ids.h
 scripts/preview_read.py   meaning-page layout preview (mirrors ui.cpp)
 tools/                    host tools for the on-device reading model
 docs/reading-model.md     handover for the model work: decisions, traps, next steps

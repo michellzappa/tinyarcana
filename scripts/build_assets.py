@@ -63,7 +63,21 @@ FONTS = [
     ("lora_meaning", "Lora-VariableFont_wght.ttf", 21, 400),
     ("lora_small", "Lora-VariableFont_wght.ttf", 12, 600),
 ]
+# Printable ASCII is stored densely; everything else goes in a sorted side
+# table. Add a script by extending EXTRA - nothing else in the pipeline knows
+# which codepoints exist. Each added codepoint costs about 1.7 KB across the
+# eleven fonts, so measure before adding a whole alphabet.
 FIRST, LAST = 32, 126
+
+# Western European: the Latin-1 letters, Spanish and French punctuation, the
+# few Latin Extended-A letters French and the Nordic languages need, and the
+# typographic marks translators paste in.
+EXTRA = sorted(
+    [c for c in range(0x00C0, 0x0100) if c not in (0x00D7, 0x00F7)]
+    + [0x00A1, 0x00BF, 0x00AB, 0x00BB, 0x00B0]
+    + [0x0152, 0x0153, 0x0178, 0x0160, 0x0161, 0x017D, 0x017E]
+    + [0x2013, 0x2014, 0x2018, 0x2019, 0x201C, 0x201D, 0x2026]
+)
 
 
 def rgb565(r, g, b):
@@ -122,7 +136,7 @@ def build_font(name, file, size, weight):
     ascent, descent = font.getmetrics()
     glyphs = []
     alpha = bytearray()
-    for code in range(FIRST, LAST + 1):
+    for code in list(range(FIRST, LAST + 1)) + EXTRA:
         ch = chr(code)
         # bbox relative to the baseline-left origin: y0 < 0 is above baseline.
         x0, y0, x1, y1 = font.getbbox(ch, anchor="ls")
@@ -150,10 +164,17 @@ def build_font(name, file, size, weight):
         for off, w, h, xo, yo, adv in glyphs:
             f.write("  {%d, %d, %d, %d, %d, %d},\n" % (off, w, h, xo, yo, adv))
         f.write("};\n\n")
-        f.write("extern const AaFont %s;\nconst AaFont %s = {%s_alpha, %s_glyphs, %d, %d, %d, %d};\n"
-                % (name, name, name, name, FIRST, LAST, line_h, ascent))
-    print("font: %-12s %s %dpx -> %s (%d KB alpha, line %d, ascent %d)"
-          % (name, file, size, os.path.relpath(path, ROOT), len(alpha) // 1024, line_h, ascent))
+        f.write("static const uint16_t %s_codes[] = {\n" % name)
+        for i in range(0, len(EXTRA), 12):
+            f.write("  " + ",".join(str(c) for c in EXTRA[i:i + 12]) + ",\n")
+        f.write("};\n\n")
+        f.write("extern const AaFont %s;\nconst AaFont %s = "
+                "{%s_alpha, %s_glyphs, %s_codes, %d, %d, %d, %d, %d};\n"
+                % (name, name, name, name, name, len(EXTRA), FIRST, LAST,
+                   line_h, ascent))
+    print("font: %-12s %s %dpx -> %s (%d glyphs, %d KB alpha, line %d, ascent %d)"
+          % (name, file, size, os.path.relpath(path, ROOT), len(glyphs),
+             len(alpha) // 1024, line_h, ascent))
 
 
 def main():

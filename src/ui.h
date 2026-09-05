@@ -46,6 +46,9 @@ void uiBoot(uint32_t ageMs, bool fsOk, bool touchOk);
 void uiDeck(uint32_t nowMs, bool holding, float progress);
 void uiMenu(uint8_t selected);
 void uiHelp();
+// Deck, brightness, hidden card, draw, language. Shared so the renderer, the
+// hit test and the BOOT-button cursor in main.cpp cannot disagree.
+static const uint8_t SETTINGS_ROWS = 5;
 void uiSettings(const AppSettings &settings, uint8_t selected);
 void uiDeal(float p, uint8_t count);
 // The reverse: the three cards fly back into the stack, face down.

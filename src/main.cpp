@@ -8,6 +8,8 @@
 //   the next shuffle starts from scratch.
 #include <Arduino.h>
 
+#include <string.h>
+
 #include "board_display.h"
 #include "board_input.h"
 #include "cards.h"
@@ -84,13 +86,13 @@ static void newReading() {
   for (uint8_t i = 0; i < 3; i++) spread.revealed[i] = false;
   innerReady = false;
   if (spread.count == 1) {
-    Serial.printf("draw: %s  (stirs=%lu)\n", deckCard(deck, spread.reading.card[0]).name,
+    Serial.printf("draw: %s  (stirs=%lu)\n", deckCard(deckText, spread.reading.card[0]).name,
                   (unsigned long)entropyStirs());
   } else {
     Serial.printf("draw: %s / %s / %s  (stirs=%lu)\n",
-                  deckCard(deck, spread.reading.card[0]).name,
-                  deckCard(deck, spread.reading.card[1]).name,
-                  deckCard(deck, spread.reading.card[2]).name,
+                  deckCard(deckText, spread.reading.card[0]).name,
+                  deckCard(deckText, spread.reading.card[1]).name,
+                  deckCard(deckText, spread.reading.card[2]).name,
                   (unsigned long)entropyStirs());
   }
   for (uint8_t i = 0; i < spread.count; i++) cardPreload(spread.reading.card[i]);
@@ -131,7 +133,7 @@ static void openInner() {
   // meaning page.
   if (spread.count != 3) return;
   if (!innerReady) {
-    tarotCompose(deckById(spread.deck), spread.reading, innerText,
+    tarotCompose(deckText, uiStrings, spread.reading, innerText,
                  sizeof innerText);
     innerPages = uiInnerPrepare(innerText);
     innerReady = true;
@@ -153,6 +155,9 @@ static void adjustSetting() {
   case 0:
     appSettings.deckId = (uint8_t)((appSettings.deckId + 1) % DECK_COUNT);
     cardsSelectDeck(deckById(appSettings.deckId));
+    // The deck's words and its pictures are the same choice, so they move
+    // together; the reading on screen would otherwise name the other deck.
+    langApply(appSettings.lang, appSettings.deckId);
     break;
   case 1:
     if (appSettings.brightness < 64) appSettings.brightness = 64;
@@ -167,6 +172,20 @@ static void adjustSetting() {
   case 3:
     appSettings.singleCard = !appSettings.singleCard;
     break;
+  case 4: {
+    // Step to the next language directory on the filesystem. With only one
+    // installed the row is inert, which is the honest thing for it to be.
+    char codes[8][LANG_CODE_MAX];
+    const uint8_t n = langList(codes, 8);
+    if (n < 2) break;
+    uint8_t at = 0;
+    for (uint8_t i = 0; i < n; i++)
+      if (strcmp(codes[i], appSettings.lang) == 0) { at = i; break; }
+    const uint8_t next = (uint8_t)((at + 1) % n);
+    snprintf(appSettings.lang, sizeof appSettings.lang, "%s", codes[next]);
+    langApply(appSettings.lang, appSettings.deckId);
+    break;
+  }
   }
   settingsSave();
   settingsApplyHardware();
@@ -192,6 +211,10 @@ void setup() {
   settingsApplyHardware();
   fsOk = cardsBegin();
   if (fsOk) fsOk = cardsSelectDeck(deckById(appSettings.deckId));
+  if (!langApply(appSettings.lang, appSettings.deckId))
+    Serial.printf("lang: %s unavailable, using en\n", appSettings.lang);
+  else
+    Serial.printf("lang: %s (%u ui strings)\n", appSettings.lang, uiStrings.count);
   gfx->clear(COL_BG);
   gfx->flush();
   go(SCR_BOOT);
@@ -293,7 +316,7 @@ void loop() {
         go(SCR_MENU);
       }
     } else if (in.aPressed) {
-      settingsCursor = (uint8_t)((settingsCursor + 1) % 4);
+      settingsCursor = (uint8_t)((settingsCursor + 1) % SETTINGS_ROWS);
     } else if (in.bPressed) {
       adjustSetting();
     } else if (in.aLong) {
