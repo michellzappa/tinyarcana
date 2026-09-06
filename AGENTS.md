@@ -222,6 +222,55 @@ text fills the page to `INNER_BOTTOM` and any hint line overprinted it.
 `scripts/preview_read.py` mirrors the meaning-page constants. Change one and
 change the other, or the preview quietly stops matching the device.
 
+## Controls, and the three bands they may occupy
+
+The round face has one screen's worth of room and four things that want it:
+the header at 60, the content, the hint at 404 and the arc. Every control on
+the device is placed against those, and against the rim.
+
+**Settings holds four rows and no more.** Rows are 52 px at step 58 from 108,
+so the fourth ends at 334. The back button starts at 368 and the hint sits at
+447. A fifth row does not fit. The screen carried five rows before, at 46 px,
+and the cost was a brightness control that could only step in one direction
+and a reset that was written in `settings.cpp` and never called.
+
+**The brightness track and its hit test are the same numbers.** `SLIDER_X` and
+`SLIDER_W` in `ui.cpp` answer both the renderer and `uiBrightnessAtX()`, which
+`main.cpp` calls with the x under the finger. `SLIDER_W` stops 90 px short of
+the row: `100%` is 46 px in `lora_label` at tracking 2, and the knob reaches
+8 px past the end of the track. `BRIGHT_MIN` is 32, because the control that
+undoes a black panel is invisible on a black panel.
+
+**A control on the deck screen must stay inside radius 226.** `rimFill()`
+draws the shuffle ring at radius 231 with a thickness of 5, so anything whose
+corner reaches past 226 is painted over during a hold. The draw-mode pills sit
+at 205 at their worst corner and the settings mark at 197. Measure the corner,
+not the centre.
+
+**The deck's own touch area is x 138 to 328, y 88 to 392.** It is larger than
+the artwork, which starts at 108. Any control near it is tested first in
+`main.cpp`, and the settings mark is padded by only half below so its pad ends
+at 102 and never covers a card. `uiDrawModeHit()`, `uiSettingsLinkHit()` and
+`uiReadingResetHit()` all return a target larger than what is drawn:
+`TOUCH_PAD` is 16 px.
+
+**A control that changes the reading gets a plate. A way out of a screen gets
+a mark.** The draw-mode pills are filled and outlined because they hold a
+selected state. Settings and close-the-reading are a 22 px ring with one dot,
+no plate: on the ring for settings, in the middle for the gather.
+
+**The pills carry no words on purpose.** One dot or three says the same thing
+in every language and cannot widen a 56 px pill. `UI_DRAW_ONE` and
+`UI_DRAW_THREE` existed for one commit and were deleted.
+
+**Measure a new label against its row before placing it.** The longest today
+is `TOQUE DE NOVO` at 157 px in a 221 px value column. Use the font advances
+the way `tools/fit_check.py` does:
+
+```sh
+python3 -c "import sys; sys.path.insert(0,'tools'); from fit_check import load_font, width; print(width(load_font('lora_label'), 'YOUR LABEL', 2))"
+```
+
 ## Frame rate
 
 Every loop paints a full frame into PSRAM and pushes it over QSPI. Measured on
