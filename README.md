@@ -30,9 +30,17 @@ documents every control. The boot screen counts the twenty-one numbered
 trumps around the rim and names the device; the Fool is unnumbered, so he is
 the dot at the centre rather than a mark on the wheel.
 
-From the deck screen, PWR opens the menu. Settings persist across boots and
-currently cover the active deck, brightness, whether the quintessence shows
-beneath the spread, and whether a draw is three cards or one.
+From the deck screen, a ring above the deck opens Settings and PWR opens the
+menu. Settings persist across boots and cover the active deck, brightness, the
+language, and a reset to defaults. Whether a draw is three cards or one is not
+in there: two pills flank the deck, one dot and three, because that choice
+changes the ritual on the deck screen rather than a preference behind it. The
+quintessence always shows beneath a three-card spread.
+
+The deck screen and the menu carry a small battery gauge low on the face. It
+reads the AXP2101 every ten seconds, shows a bolt while the cell charges, and
+turns gold below 20 percent. A board on USB with no cell shows a plug instead,
+because there is nothing to gauge.
 
 A single card is a different ritual, not a shorter one. One touch on the deck
 picks it, there is no hold and no charge ring, the card arrives face down at
@@ -42,7 +50,7 @@ from an arc across positions, the elements between neighbours, curated pairs
 and a digit-reduced sum, and one card has none of them. Touch to a face-up
 card is about 860 ms against roughly 3.5 seconds for the three-card draw.
 
-Rider-Waite-Smith is the first and default deck. GPTarot and Marseille are
+Waite-Smith is the first and default deck. GPTarot and Marseille are
 also available as 22-card Major-only options; each carries its own card
 meanings, numbering, relationship prose, and reading voice. A deck needs
 artwork to earn its place: a semantics-only deck shows procedural placeholders
@@ -50,8 +58,14 @@ and costs firmware for nothing.
 
 In the menu, BOOT moves between items and PWR opens one. In Settings, BOOT
 moves between rows, PWR changes the selected value, and tapping the bottom
-edge returns to the menu. The selected menu or settings row has a filled
-circular marker; unselected rows have hollow markers.
+edge returns to the menu. Brightness is dragged along its own track, so a
+finger sets the level where it lands. Deck and language carry a dot per
+option, so a row says how many states it has before anyone taps it. Reset asks
+twice.
+
+A reading is not stored anywhere. The ring below the spread closes it, and it
+asks twice as well: the first tap arms it and says so, the second gathers the
+cards back into the deck.
 
 ### Inner reading
 
@@ -71,7 +85,7 @@ Not a lookup. `src/tarot_engine.cpp` builds the reading from the spread:
 
 | Input | Deck | Spread | Card | Inner |
 | --- | --- | --- | --- | --- |
-| **Touch** | hold to shuffle | tap to turn / open a card | tap: card to meaning, meaning to spread; swipe between cards | tap for next page |
+| **Touch** | hold to shuffle; pills set one card or three; the ring opens Settings | tap to turn / open a card; the ring below closes the reading, asking twice | tap: card to meaning, meaning to spread; swipe between cards | tap for next page |
 | **BOOT** | quick draw (no shuffle) | turn next card, then open | next card | next page |
 | **BOOT + PWR** or **BOOT hold** | | close the reading | close the reading | close the reading |
 | **PWR** | menu | inner reading (turns remaining cards first) | inner reading | back to spread |
@@ -123,9 +137,10 @@ src/
   entropy.*         hardware RNG + touch stirring
   glyphs.*          Golden Dawn symbols drawn from stroke tables
   board_display.*   CO5300 round panel and AXP2101
+  power.*           cached battery, charger and USB state from the PMU
   board_input.*     BOOT, PWR and CST9217 touch
   fonts/            generated glyph tables
-assets/cards/             Rider-Waite-Smith majors (public domain)
+assets/cards/             Waite-Smith majors (public domain)
 assets/decks/             additional Major-only deck assets and instructions
 assets/fonts/             Lora (SIL OFL)
 assets/lang/<code>/       every user-facing string, per language
@@ -139,7 +154,8 @@ data/<env>/               generated LittleFS payload (gitignored)
 
 ### Tarot artwork and fair use
 
-The included Rider-Waite-Smith artwork is identified as public domain in
+The included Waite-Smith artwork, published in 1909 as the Rider deck, is
+identified as public domain in
 [LICENSE](LICENSE). The bundled Marseille pack is the CC0 Jean Dodal-attributed
 Major Arcana pack credited there. Any additional deck artwork
 must be reviewed separately: a particular scan, edition, restoration, or
