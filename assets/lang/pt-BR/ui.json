@@ -36,18 +36,13 @@
     "UI_HELP1_2": "A carta chega virada para baixo e se vira sozinha.",
     "UI_HELP1_3": "Toque para ler o que ela diz. Toque de novo para devolvê-la ao baralho.",
     "UI_HELP1_4": "BOOT e PWR juntos, ou segure BOOT, fecha a leitura a qualquer momento.",
-    "UI_HELP1_5": "Ajustes troca entre uma carta e três.",
+    "UI_HELP1_5": "A tela do baralho troca entre uma carta e três.",
     "UI_TAP_TO_GO_BACK": "TOQUE PARA VOLTAR",
     "UI_SETTINGS_TITLE": "Ajustes",
     "UI_SET_DECK": "BARALHO",
     "UI_SET_BRIGHTNESS": "BRILHO",
-    "UI_SET_HIDDEN": "SOB A TIRAGEM",
-    "UI_SET_DRAW": "TIRAGEM",
     "UI_SET_LANGUAGE": "IDIOMA",
-    "UI_ON": "SIM",
-    "UI_OFF": "NÃO",
-    "UI_ONE_CARD": "UMA CARTA",
-    "UI_THREE": "TRÊS",
+    "UI_SET_RESET": "RESTAURAR",
     "UI_BACK_TO_MENU": "VOLTAR AO MENU",
     "UI_TAP_AN_OPTION": "TOQUE PARA MUDAR",
     "UI_YOUR_READING": "Sua leitura",
@@ -59,6 +54,8 @@
     "UI_TAP_TO_READ": "TOQUE PARA LER",
     "UI_TAP_TO_TURN": "TOQUE PARA VIRAR",
     "UI_INNER_TITLE": "A leitura interna",
-    "UI_LANGUAGE_NAME": "Português"
+    "UI_LANGUAGE_NAME": "Português",
+    "UI_RESET_VALUE": "PADRÕES",
+    "UI_RESET_ARMED": "TOQUE DE NOVO"
   }
 }

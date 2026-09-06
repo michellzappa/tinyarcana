@@ -36,18 +36,13 @@
     "UI_HELP1_2": "The card arrives face down and turns itself over.",
     "UI_HELP1_3": "Tap it to read what it means. Tap again to send it back to the deck.",
     "UI_HELP1_4": "BOOT and PWR together, or hold BOOT, closes the reading at any point.",
-    "UI_HELP1_5": "Settings switches between one card and three.",
+    "UI_HELP1_5": "The deck screen switches between one card and three.",
     "UI_TAP_TO_GO_BACK": "TAP TO GO BACK",
     "UI_SETTINGS_TITLE": "Settings",
     "UI_SET_DECK": "DECK",
     "UI_SET_BRIGHTNESS": "BRIGHTNESS",
-    "UI_SET_HIDDEN": "BENEATH THE SPREAD",
-    "UI_SET_DRAW": "DRAW",
     "UI_SET_LANGUAGE": "LANGUAGE",
-    "UI_ON": "ON",
-    "UI_OFF": "OFF",
-    "UI_ONE_CARD": "ONE CARD",
-    "UI_THREE": "THREE",
+    "UI_SET_RESET": "RESET",
     "UI_BACK_TO_MENU": "BACK TO MENU",
     "UI_TAP_AN_OPTION": "TAP TO CHANGE",
     "UI_YOUR_READING": "Your reading",
@@ -59,6 +54,8 @@
     "UI_TAP_TO_READ": "TAP TO READ",
     "UI_TAP_TO_TURN": "TAP TO TURN",
     "UI_INNER_TITLE": "The inner reading",
-    "UI_LANGUAGE_NAME": "English"
+    "UI_LANGUAGE_NAME": "English",
+    "UI_RESET_VALUE": "DEFAULTS",
+    "UI_RESET_ARMED": "TAP AGAIN"
   }
 }

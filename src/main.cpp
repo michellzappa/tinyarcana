@@ -150,42 +150,47 @@ static void startCut() {
   go(SCR_DEAL);
 }
 
+// The reset row asks twice, and the arming is state the screen must show, so
+// it lives beside the cursor rather than inside adjustSetting().
+static bool resetArmed = false;
+
+// One step of a row's value. The touch screen sets brightness by dragging, but
+// BOOT and PWR still have to reach every row, so buttons step it.
 static void adjustSetting() {
+  if (settingsCursor != SET_ROW_RESET) resetArmed = false;
   switch (settingsCursor) {
-  case 0:
+  case SET_ROW_DECK:
     appSettings.deckId = (uint8_t)((appSettings.deckId + 1) % DECK_COUNT);
     cardsSelectDeck(deckById(appSettings.deckId));
     // The deck's words and its pictures are the same choice, so they move
     // together; the reading on screen would otherwise name the other deck.
     langApply(appSettings.lang, appSettings.deckId);
     break;
-  case 1:
-    if (appSettings.brightness < 64) appSettings.brightness = 64;
-    else if (appSettings.brightness < 128) appSettings.brightness = 128;
-    else if (appSettings.brightness < 192) appSettings.brightness = 192;
-    else if (appSettings.brightness < 255) appSettings.brightness = 255;
-    else appSettings.brightness = 64;
+  case SET_ROW_BRIGHT:
+    appSettings.brightness =
+        (appSettings.brightness >= 224) ? 32
+                                        : (uint8_t)(appSettings.brightness + 32);
     break;
-  case 2:
-    appSettings.showHiddenCard = !appSettings.showHiddenCard;
-    break;
-  case 3:
-    appSettings.singleCard = !appSettings.singleCard;
-    break;
-  case 4: {
+  case SET_ROW_LANG: {
     // Step to the next language directory on the filesystem. With only one
     // installed the row is inert, which is the honest thing for it to be.
-    char codes[8][LANG_CODE_MAX];
-    const uint8_t n = langList(codes, 8);
+    const uint8_t n = langCount();
     if (n < 2) break;
-    uint8_t at = 0;
-    for (uint8_t i = 0; i < n; i++)
-      if (strcmp(codes[i], appSettings.lang) == 0) { at = i; break; }
-    const uint8_t next = (uint8_t)((at + 1) % n);
-    snprintf(appSettings.lang, sizeof appSettings.lang, "%s", codes[next]);
+    const uint8_t next = (uint8_t)((langIndexOf(appSettings.lang) + 1) % n);
+    snprintf(appSettings.lang, sizeof appSettings.lang, "%s", langCodeAt(next));
     langApply(appSettings.lang, appSettings.deckId);
     break;
   }
+  case SET_ROW_RESET:
+    if (!resetArmed) {
+      resetArmed = true;
+      return;   // nothing changed yet, so nothing to save
+    }
+    resetArmed = false;
+    settingsReset();
+    cardsSelectDeck(deckById(appSettings.deckId));
+    langApply(appSettings.lang, appSettings.deckId);
+    return;     // settingsReset() already saved and applied
   }
   settingsSave();
   settingsApplyHardware();
@@ -252,6 +257,28 @@ void loop() {
     break;
 
   case SCR_DECK: {
+    // The controls beside and above the deck are tested before the deck, so
+    // their padded targets win where they overlap the cards.
+    if (in.tap && uiSettingsLinkHit(in.x, in.y)) {
+      holding = false;
+      menuCursor = 1;
+      settingsCursor = 0;
+      resetArmed = false;
+      go(SCR_SETTINGS);
+      break;
+    }
+    if (in.tap) {
+      const int8_t mode = uiDrawModeHit(in.x, in.y);
+      if (mode >= 0) {
+        const bool one = mode == 0;
+        if (one != appSettings.singleCard) {
+          appSettings.singleCard = one;
+          settingsSave();
+        }
+        holding = false;
+        break;
+      }
+    }
     // A single card is picked, not shuffled: one touch on the deck draws it.
     // The touch still stirs the entropy, the same as a hold would.
     if (appSettings.singleCard && in.tap && uiDeckHit(in.x, in.y)) {
@@ -259,7 +286,10 @@ void loop() {
       startCut();
       break;
     }
-    if (in.touchBegan && uiDeckHit(in.x, in.y)) {
+    // The deck's hit area starts at 88 and the pills end at 96, so the pills
+    // are tested first here too: a finger on one must not start a shuffle.
+    if (in.touchBegan && uiDrawModeHit(in.x, in.y) < 0 &&
+        !uiSettingsLinkHit(in.x, in.y) && uiDeckHit(in.x, in.y)) {
       holding = true;
       holdStart = now;
     }
@@ -305,24 +335,46 @@ void loop() {
     if (in.tap || in.aPressed || in.bPressed) go(SCR_MENU);
     break;
 
-  case SCR_SETTINGS:
-    uiSettings(appSettings, settingsCursor);
-    if (in.tap) {
-      const int8_t item = uiSettingsHit(in.x, in.y);
-      if (item >= 0) {
-        settingsCursor = (uint8_t)item;
+  case SCR_SETTINGS: {
+    uiSettings(appSettings, settingsCursor, resetArmed);
+    const int8_t row = uiSettingsHit(in.x, in.y);
+    // Brightness is dragged: the finger sets the level where it lands, and it
+    // keeps setting it until it lifts. Every other row is a tap.
+    static bool brightDrag = false;
+    if (in.touchBegan && row == SET_ROW_BRIGHT) {
+      settingsCursor = SET_ROW_BRIGHT;
+      resetArmed = false;
+      brightDrag = true;
+    }
+    if (brightDrag && (in.touchDown || in.touchEnded)) {
+      appSettings.brightness = uiBrightnessAtX(in.x);
+      settingsApplyHardware();
+    }
+    const bool dragEnded = brightDrag && in.touchEnded;
+    if (dragEnded) {
+      brightDrag = false;
+      settingsSave();
+    }
+    if (in.tap && !dragEnded) {
+      if (row >= 0) {
+        if (row != (int8_t)settingsCursor) resetArmed = false;
+        settingsCursor = (uint8_t)row;
         adjustSetting();
       } else {
+        resetArmed = false;
         go(SCR_MENU);
       }
     } else if (in.aPressed) {
       settingsCursor = (uint8_t)((settingsCursor + 1) % SETTINGS_ROWS);
+      resetArmed = false;
     } else if (in.bPressed) {
       adjustSetting();
     } else if (in.aLong) {
+      resetArmed = false;
       go(SCR_MENU);
     }
     break;
+  }
 
   case SCR_DEAL: {
     const float p = age / (float)dealMs();
@@ -346,7 +398,26 @@ void loop() {
   }
 
   case SCR_SPREAD: {
-    uiSpread(spread, -1, 0);
+    // Closing a reading throws it away: nothing about a spread is stored. So
+    // the mark below it arms on the first tap and acts on the second, and the
+    // arming expires on its own rather than waiting there for a stray finger.
+    // An arming from a previous visit to this screen never counts.
+    static uint32_t armedAt = 0;
+    const bool armed = armedAt != 0 && armedAt >= enterMs && now - armedAt < 4000;
+    if (!armed) armedAt = 0;
+    uiSpread(spread, -1, 0, armed);
+    if (in.tap && uiReadingResetHit(in.x, in.y)) {
+      if (!armed) {
+        armedAt = now;
+      } else {
+        armedAt = 0;
+        holding = false;
+        dealt = 0;
+        go(SCR_GATHER);
+      }
+      break;
+    }
+    if (in.tap || in.aPressed || in.bPressed) armedAt = 0;
     if (in.tap) {
       const int8_t slot = uiSlotHit(spread, in.x, in.y);
       if (slot >= 0) {

@@ -130,7 +130,7 @@ order, which is the whole reason the engine formats its own strings instead of
 calling `snprintf`.
 
 A language may leave a deck untranslated. `langApply()` falls back per pack,
-not per language, so a language with only `rws.json` shows Portuguese
+not per language, so a language with only `waite-smith.json` shows Portuguese
 everywhere and English on the other two decks. The build prints which decks are
 still missing. `pt-BR` is complete: UI plus all three decks.
 
@@ -151,7 +151,7 @@ only thing that catches it. Worst case per deck, measured 2026-09-05:
 
 | deck | en | pt-BR |
 | --- | --- | --- |
-| rws | 5 of 6 | **6 of 6** |
+| waite-smith | 5 of 6 | **6 of 6** |
 | gptarot | 4 of 6 | 4 of 6 |
 | marseille | 3 of 6 | 3 of 6 |
 

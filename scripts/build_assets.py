@@ -38,7 +38,7 @@ MAX_DECKS = 5
 
 def deck_sources():
     """Return RWS first, followed by any added deck asset directories."""
-    sources = {"rws": CARD_SRC}
+    sources = {"waite-smith": CARD_SRC}
     if os.path.isdir(EXTRA_DECKS_DIR):
         for deck_id in sorted(os.listdir(EXTRA_DECKS_DIR)):
             source = os.path.join(EXTRA_DECKS_DIR, deck_id)

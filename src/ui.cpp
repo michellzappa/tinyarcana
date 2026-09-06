@@ -8,6 +8,7 @@
 #include "deck.h"
 #include "entropy.h"
 #include "glyphs.h"
+#include "power.h"
 #include "tarot_data.h"
 #include "text.h"
 
@@ -76,12 +77,12 @@ static const int16_t READ_LINE_H = 24;
 #if UI_ROUND
 static const int16_t SETTINGS_BUTTON_X = 52;
 static const int16_t SETTINGS_BUTTON_W = 362;
-// Five rows between the header and the back button. At step 62 the fifth row
-// ran under the back button at 368; 52 leaves 6 px of clearance and keeps a
-// 46 px touch target, which is still well over a fingertip.
+// Four rows between the header and the back button. Losing the fifth row bought
+// the height back: 52 px rows at step 58 end at 334, clear of the back button
+// at 368, and a 52 px target holds a slider knob as well as a fingertip.
 static const int16_t SETTINGS_BUTTON_TOP = 108;
-static const int16_t SETTINGS_BUTTON_H = 46;
-static const int16_t SETTINGS_BUTTON_STEP = 52;
+static const int16_t SETTINGS_BUTTON_H = 52;
+static const int16_t SETTINGS_BUTTON_STEP = 58;
 static const int16_t SETTINGS_BACK_X = 116;
 static const int16_t SETTINGS_BACK_W = 234;
 static const int16_t SETTINGS_BACK_TOP = 368;
@@ -90,8 +91,8 @@ static const int16_t SETTINGS_BACK_H = 50;
 static const int16_t SETTINGS_BUTTON_X = 24;
 static const int16_t SETTINGS_BUTTON_W = SCR_W - 48;
 static const int16_t SETTINGS_BUTTON_TOP = 112;
-static const int16_t SETTINGS_BUTTON_H = 50;
-static const int16_t SETTINGS_BUTTON_STEP = 58;
+static const int16_t SETTINGS_BUTTON_H = 54;
+static const int16_t SETTINGS_BUTTON_STEP = 62;
 static const int16_t SETTINGS_BACK_X = 82;
 static const int16_t SETTINGS_BACK_W = SCR_W - 164;
 static const int16_t SETTINGS_BACK_TOP = 346;
@@ -113,6 +114,65 @@ static const int16_t MENU_BUTTON_TOP = 142;
 static const int16_t MENU_BUTTON_H = 58;
 static const int16_t MENU_BUTTON_STEP = 72;
 #endif
+
+// Inside a settings row. The brightness track is also its touch target: the
+// finger sets the level where it lands, so the same numbers must answer both
+// the renderer and uiBrightnessAtX().
+static const int16_t ROW_PAD = 20;
+static const int16_t SLIDER_X = (int16_t)(SETTINGS_BUTTON_X + ROW_PAD);
+static const int16_t SLIDER_W = (int16_t)(SETTINGS_BUTTON_W - ROW_PAD - 90);
+// 90 px is the readout plus clearance: "100%" is 46 px in lora_label at
+// tracking 2, and the knob reaches 8 px past the end of the track.
+// Never all the way off. A dark panel is a setting; a black one reads as a
+// dead device, and the only control that could undo it is invisible.
+static const uint8_t BRIGHT_MIN = 32;
+
+// The draw-mode pair on the deck screen. One pill either side of the deck,
+// level with its middle: the deck stands between the two choices rather than
+// under them, and the band above it stays empty for the shuffle rim.
+//
+// The deck's own touch area runs x 138 to 328, so the pills are inset far
+// enough to leave a margin on both sides of it.
+#if UI_ROUND
+static const int16_t DRAW_SEG_W = 56;
+static const int16_t DRAW_SEG_H = 76;
+static const int16_t DRAW_SEG_INSET = 30;
+static const int16_t DRAW_SEG_CY = 240;    // the deck's own centre line
+static const int16_t DRAW_DOT_STEP = 22;   // dots stack down the pill
+// The settings link: the same small pill, above the deck rather than beside
+// it, so the three controls read as one family.
+static const int16_t LINK_W = 56;
+static const int16_t LINK_H = 56;
+static const int16_t LINK_TOP = 38;
+#else
+static const int16_t DRAW_SEG_W = 52;
+static const int16_t DRAW_SEG_H = 72;
+static const int16_t DRAW_SEG_INSET = 14;
+static const int16_t DRAW_SEG_CY = 240;
+static const int16_t DRAW_DOT_STEP = 20;
+static const int16_t LINK_W = 52;
+static const int16_t LINK_H = 52;
+static const int16_t LINK_TOP = 26;
+#endif
+static const int16_t DRAW_SEG_TOP = (int16_t)(DRAW_SEG_CY - DRAW_SEG_H / 2);
+static const int16_t LINK_X = (int16_t)(SCR_W / 2 - LINK_W / 2);
+// A drawn control this small needs a hand-sized target around it. The pad is
+// invisible: the pill says where to aim, the pad forgives the aim. It stops at
+// the top of the deck artwork so a finger on the cards still shuffles.
+static const int16_t TOUCH_PAD = 16;
+
+// The close-the-reading mark, below the spread. 384 carries the quintessence
+// line and 404 the hint, so 428 is the first clear row; its ring reaches 439
+// against a chord that still allows 86 px either side of centre.
+#if UI_ROUND
+static const int16_t RESET_CY = 428;
+#else
+static const int16_t RESET_CY = 452;
+#endif
+static inline int16_t drawSegX(uint8_t i) {
+  return (int16_t)(i == 0 ? DRAW_SEG_INSET
+                          : SCR_W - DRAW_SEG_INSET - DRAW_SEG_W);
+}
 
 // The meaning page body: a touch wider than the reading column so the longest
 // meanings still hold five lines at 21 px.
@@ -160,6 +220,65 @@ static void hint(const char *a, const char *b = nullptr, int16_t y = HINT_Y) {
   if (b) snprintf(buf, sizeof buf, "%s   %s", a, b);
   txtCenter(lora_label, b ? buf : a, CX, y, COL_GOLD_DIM, 1);
 #endif
+}
+
+// ---------------- Power badge ----------------
+// A small gauge low on the face, on the deck screen only: the deck screen is
+// where the device sits idle, and every other screen already fills that band.
+// Geometry is the lofiair badge, in this face's gold rather than its cyan.
+#if UI_ROUND
+static const int16_t PWR_TOP = 430;      // top edge of the 12 px cell
+#else
+static const int16_t PWR_TOP = 452;
+#endif
+static const int16_t PWR_BASE = (int16_t)(PWR_TOP + 11);   // percentage baseline
+
+static void chargeBolt(int16_t cx, int16_t cy, uint16_t col) {
+  gfx->fillTriangle((int16_t)(cx + 1), (int16_t)(cy - 6), (int16_t)(cx - 4), cy,
+                    (int16_t)(cx + 1), cy, col);
+  gfx->fillTriangle((int16_t)(cx - 1), cy, (int16_t)(cx + 4), cy,
+                    (int16_t)(cx - 1), (int16_t)(cy + 6), col);
+}
+
+static void powerBadge() {
+  const PowerState &p = powerPoll();
+  // No PMU, and no cell on USB power: say nothing. A "PWR ?" on this face
+  // reads as an error the reader can do nothing about.
+  if (!p.valid || (!p.battery && !p.vbus)) return;
+
+  const bool low = p.battery && p.percent >= 0 && p.percent <= 20;
+  const uint16_t col = low ? COL_GOLD : COL_GOLD_DIM;
+
+  char label[8] = "";
+  if (p.percent >= 0) snprintf(label, sizeof label, "%d%%", (int)p.percent);
+  const int16_t glyphW = 24;   // cell plus its cap, or the plug
+  const int16_t gap = 6;
+  const int16_t textW = label[0] ? txtWidth(lora_small, label, -1, 1) : 0;
+  const int16_t total = (int16_t)(glyphW + (textW ? gap + textW : 0));
+  const int16_t x = (int16_t)(CX - total / 2);
+
+  if (p.battery) {
+    gfx->drawRoundRect(x, PWR_TOP, 21, 12, 2, col);
+    gfx->fillRoundRect((int16_t)(x + 21), (int16_t)(PWR_TOP + 4), 3, 5, 1, col);
+    if (p.percent > 0) {
+      int16_t fill = (int16_t)((17 * p.percent + 50) / 100);
+      if (fill < 1) fill = 1;
+      if (fill > 17) fill = 17;
+      gfx->fillRoundRect((int16_t)(x + 2), (int16_t)(PWR_TOP + 2), fill, 8, 1, col);
+    }
+    if (p.charging) {
+      gfx->fillRect((int16_t)(x + 7), (int16_t)(PWR_TOP + 1), 7, 10, COL_BG);
+      chargeBolt((int16_t)(x + 10), (int16_t)(PWR_TOP + 6), col);
+    }
+  } else {
+    // USB with no cell sensed: a side-on plug. There is nothing to gauge.
+    gfx->fillRect(x, (int16_t)(PWR_TOP + 2), 7, 2, col);
+    gfx->fillRect(x, (int16_t)(PWR_TOP + 9), 7, 2, col);
+    gfx->fillRoundRect((int16_t)(x + 7), PWR_TOP, 12, 13, 2, col);
+    gfx->fillRect((int16_t)(x + 19), (int16_t)(PWR_TOP + 5), 5, 3, col);
+  }
+  if (label[0])
+    txtDraw(lora_small, label, (int16_t)(x + glyphW + gap), PWR_BASE, col, -1, 1);
 }
 
 static void dots(uint8_t n, uint8_t active, int16_t y) {
@@ -321,6 +440,55 @@ static void rimFill(float progress) {
   }
 }
 
+// The two quiet marks: a 22 px ring with one dot. Settings puts the dot on the
+// ring, which reads as a dial. Closing a reading puts it in the middle, which
+// is where the three cards end up when they gather.
+//
+// Neither gets a plate. A plate is for a control that changes the reading; a
+// way out of a screen should not carry the same weight as the deck beside it.
+static const int16_t MARK_R = 11;
+
+static void mark(int16_t cx, int16_t cy, bool centred, uint16_t col) {
+  gfx->drawCircle(cx, cy, MARK_R, col);
+  if (centred) {
+    gfx->fillCircle(cx, cy, 3, col);
+  } else {
+    gfx->fillCircle((int16_t)(cx + 8), (int16_t)(cy - 8), 3, COL_BG);
+    gfx->fillCircle((int16_t)(cx + 8), (int16_t)(cy - 8), 3, col);
+  }
+}
+
+// The way into Settings.
+static void settingsLink() {
+  mark((int16_t)(LINK_X + LINK_W / 2), (int16_t)(LINK_TOP + LINK_H / 2), false,
+       COL_GOLD_DIM);
+}
+
+// One card or three, on the screen where the difference is felt: three cards
+// are shuffled and cut with a hold, one is picked with a touch. Hiding that
+// two screens away in Settings put the mode far from the ritual it governs.
+static void drawModeSegment(bool one) {
+  for (uint8_t i = 0; i < 2; i++) {
+    const bool active = (i == 0) == one;
+    const int16_t x = drawSegX(i);
+    gfx->fillRoundRect(x, DRAW_SEG_TOP, DRAW_SEG_W, DRAW_SEG_H, 12,
+                       active ? blend565(COL_BG, COL_GOLD_DIM, 48)
+                              : blend565(COL_BG, COL_RULE, 150));
+    gfx->drawRoundRect(x, DRAW_SEG_TOP, DRAW_SEG_W, DRAW_SEG_H, 12,
+                       active ? COL_GOLD : COL_RULE);
+    // One dot or three, not one word or two. The pill says how many cards are
+    // coming without naming them, so the control needs no translation and the
+    // two halves stay the same size in every language.
+    const int16_t cx = (int16_t)(x + DRAW_SEG_W / 2);
+    const int16_t cy = DRAW_SEG_CY;
+    const uint16_t mark = active ? COL_GOLD : COL_DIM;
+    const uint8_t n = i == 0 ? 1 : 3;
+    for (uint8_t d = 0; d < n; d++)
+      gfx->fillCircle(cx, (int16_t)(cy + ((int16_t)d - (n - 1) / 2) * DRAW_DOT_STEP),
+                      5, mark);
+  }
+}
+
 void uiDeck(uint32_t nowMs, bool holding, float progress) {
   gfx->clear(COL_BG);
 
@@ -365,6 +533,12 @@ void uiDeck(uint32_t nowMs, bool holding, float progress) {
   } else {
     hint(T(UI_HOLD_TO_SHUFFLE));
   }
+  // Not while shuffling: the hold is a commitment and the mode is already made.
+  if (!holding) {
+    drawModeSegment(one);
+    settingsLink();
+  }
+  powerBadge();
 }
 
 // ---------------- Menu ----------------
@@ -393,6 +567,7 @@ void uiMenu(uint8_t selected) {
                      SETTINGS_BACK_H, 12, COL_GOLD_DIM);
   txtCenter(lora_label, T(UI_BACK_TO_DECK), CX,
             (int16_t)(SETTINGS_BACK_TOP + 33), COL_GOLD_DIM, 2);
+  powerBadge();
 }
 
 void uiHelp() {
@@ -426,18 +601,44 @@ void uiHelp() {
 }
 
 // ---------------- Settings ----------------
-void uiSettings(const AppSettings &settings, uint8_t selected) {
+// A row's shared shell: the tappable plate and its label.
+static int16_t settingsRowTop(uint8_t i) {
+  return (int16_t)(SETTINGS_BUTTON_TOP + i * SETTINGS_BUTTON_STEP);
+}
+
+// How many states a list row has, and where it stands. The dots say what the
+// value alone cannot: that there is a third deck, or a second language.
+static void optionDots(int16_t x, int16_t cy, uint8_t n, uint8_t active,
+                       uint16_t col) {
+  if (n < 2 || n > 8) return;
+  for (uint8_t i = 0; i < n; i++) {
+    const int16_t dx = (int16_t)(x + i * 8);
+    if (i == active) gfx->fillCircle(dx, cy, 2, col);
+    else gfx->drawCircle(dx, cy, 2, COL_RULE);
+  }
+}
+
+uint8_t uiBrightnessAtX(int16_t x) {
+  int32_t t = (int32_t)x - SLIDER_X;
+  if (t < 0) t = 0;
+  if (t > SLIDER_W) t = SLIDER_W;
+  return (uint8_t)(BRIGHT_MIN + (t * (255 - BRIGHT_MIN) + SLIDER_W / 2) / SLIDER_W);
+}
+
+void uiSettings(const AppSettings &settings, uint8_t selected, bool resetArmed) {
   gfx->clear(COL_BG);
   txtCenter(lora_head, T(UI_SETTINGS_TITLE), CX, HEAD_Y, COL_IVORY);
   rule(HEAD_Y + 14, COL_GOLD_DIM);
 
-  const char *labels[] = {T(UI_SET_DECK), T(UI_SET_BRIGHTNESS), T(UI_SET_HIDDEN),
-                          T(UI_SET_DRAW), T(UI_SET_LANGUAGE)};
+  const char *labels[] = {T(UI_SET_DECK), T(UI_SET_BRIGHTNESS),
+                          T(UI_SET_LANGUAGE), T(UI_SET_RESET)};
   static_assert(sizeof labels / sizeof labels[0] == SETTINGS_ROWS, "row count");
+
   char value[64];
   for (uint8_t i = 0; i < SETTINGS_ROWS; i++) {
-    const int16_t top = (int16_t)(SETTINGS_BUTTON_TOP + i * SETTINGS_BUTTON_STEP);
-    const int16_t y = (int16_t)(top + 18);
+    const int16_t top = settingsRowTop(i);
+    const int16_t labelY = (int16_t)(top + 20);
+    const int16_t valueY = (int16_t)(top + 42);
     const bool isSelected = i == selected;
     const uint16_t border = isSelected ? COL_GOLD : COL_RULE;
     const uint16_t fill = isSelected
@@ -447,32 +648,61 @@ void uiSettings(const AppSettings &settings, uint8_t selected) {
                        SETTINGS_BUTTON_H, 12, fill);
     gfx->drawRoundRect(SETTINGS_BUTTON_X, top, SETTINGS_BUTTON_W,
                        SETTINGS_BUTTON_H, 12, border);
-    if (i == 0) {
-      snprintf(value, sizeof value, "%s", deckText.name);
-    } else if (i == 1) {
+
+    const uint16_t labelCol = isSelected ? COL_GOLD : COL_DIM;
+    txtDraw(lora_small, labels[i], (int16_t)(SETTINGS_BUTTON_X + ROW_PAD),
+            labelY, labelCol, -1, 2);
+    const int16_t dotsX = (int16_t)(SETTINGS_BUTTON_X + ROW_PAD +
+                                    txtWidth(lora_small, labels[i], -1, 2) + 14);
+    const int16_t valueRight = (int16_t)(SETTINGS_BUTTON_X + SETTINGS_BUTTON_W - ROW_PAD);
+
+    if (i == SET_ROW_BRIGHT) {
+      // Direct manipulation: the track is the control, and the finger lands on
+      // the level it wants. Cycling through four steps could only ever go one
+      // way, so dimming meant a trip through full brightness.
+      const int16_t ty = (int16_t)(top + 34);
+      const int32_t span = (settings.brightness > BRIGHT_MIN)
+                               ? (settings.brightness - BRIGHT_MIN)
+                               : 0;
+      const int16_t kx = (int16_t)(SLIDER_X + span * SLIDER_W / (255 - BRIGHT_MIN));
+      gfx->fillRoundRect(SLIDER_X, (int16_t)(ty - 2), SLIDER_W, 5, 2, COL_RULE);
+      gfx->fillRoundRect(SLIDER_X, (int16_t)(ty - 2), (int16_t)(kx - SLIDER_X), 5, 2,
+                         isSelected ? COL_GOLD : COL_GOLD_DIM);
+      gfx->fillCircle(kx, ty, 8, isSelected ? COL_GOLD : COL_GOLD_DIM);
+      gfx->fillCircle(kx, ty, 5, COL_BG);
       snprintf(value, sizeof value, "%u%%",
                (unsigned int)((settings.brightness * 100u + 127u) / 255u));
-    } else if (i == 2) {
-      snprintf(value, sizeof value, "%s", settings.showHiddenCard ? T(UI_ON) : T(UI_OFF));
-    } else if (i == 3) {
-      snprintf(value, sizeof value, "%s", settings.singleCard ? T(UI_ONE_CARD) : T(UI_THREE));
-    } else {
+      txtRight(lora_label, value, valueRight, valueY, COL_IVORY, 2);
+      continue;
+    }
+
+    if (i == SET_ROW_DECK) {
+      snprintf(value, sizeof value, "%s", deckText.name);
+      optionDots(dotsX, (int16_t)(labelY - 4), DECK_COUNT, settings.deckId,
+                 labelCol);
+    } else if (i == SET_ROW_LANG) {
       // The language names itself, so the row reads in the language it selects.
       snprintf(value, sizeof value, "%s", T(UI_LANGUAGE_NAME));
+      optionDots(dotsX, (int16_t)(labelY - 4), langCount(),
+                 langIndexOf(settings.lang), labelCol);
+    } else {
+      // Reset asks twice. One stray tap must not take the deck, the language
+      // and the brightness with it.
+      snprintf(value, sizeof value, "%s",
+               resetArmed ? T(UI_RESET_ARMED) : T(UI_RESET_VALUE));
     }
-    txtDraw(lora_small, labels[i], (int16_t)(SETTINGS_BUTTON_X + 20), y,
-            isSelected ? COL_GOLD : COL_DIM, 2);
-    const int16_t valueRight = (int16_t)(SETTINGS_BUTTON_X + SETTINGS_BUTTON_W - 20);
-    txtRight(lora_label, value, valueRight, (int16_t)(y + 20), COL_IVORY, 2);
+    txtRight(lora_label, value,
+             valueRight, valueY,
+             (i == SET_ROW_RESET && resetArmed) ? COL_GOLD : COL_IVORY, 2);
 
     // A swatch of the deck's own artwork, left of its name. The names say
     // which deck; only the picture says what it looks like, which is the
     // reason to switch. Card 0 because every deck has one.
     //
     // cardDrawFaceScaled() falls back to a full-size card when the bitmap is
-    // missing, which would paint over the whole screen from inside a 46 px
+    // missing, which would paint over the whole screen from inside a 52 px
     // row, so ask for the bitmap first and skip the swatch without one.
-    if (i == 0 && cardBitmap(0, CARD_L)) {
+    if (i == SET_ROW_DECK && cardBitmap(0, CARD_L)) {
       const int16_t pw = 20, ph = 36;
       const int16_t vx = (int16_t)(valueRight - txtWidth(lora_label, value, -1, 2));
       cardDrawFaceScaled(0, (int16_t)(vx - 12 - pw / 2),
@@ -542,14 +772,15 @@ static void drawSlotLabel(uint8_t count, uint8_t i, uint16_t col) {
   txtCenter(lora_small, buf, SLOT_CX[i], SLOT_Y - 12, col, 2);
 }
 
-static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t hide);
+static void spreadBase(const Spread &s, int8_t flipping, float flipPhase,
+                       int8_t hide, bool resetArmed = false);
 
-void uiSpread(const Spread &s, int8_t flipping, float flipPhase) {
-  spreadBase(s, flipping, flipPhase, -1);
+void uiSpread(const Spread &s, int8_t flipping, float flipPhase, bool resetArmed) {
+  spreadBase(s, flipping, flipPhase, -1, resetArmed);
 }
 
 void uiZoom(const Spread &s, uint8_t pos, float p) {
-  spreadBase(s, -1, 0, (int8_t)pos);
+  spreadBase(s, -1, 0, (int8_t)pos, false);
   const float u = easeOut(p);
   const int16_t bigY = (int16_t)((SCR_H - CARD_H[CARD_L]) / 2);
   const int16_t from = slotCx(s.count, pos);
@@ -560,7 +791,8 @@ void uiZoom(const Spread &s, uint8_t pos, float p) {
   cardDrawFaceScaled(s.reading.card[pos], cx, y, w, h);
 }
 
-static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t hide) {
+static void spreadBase(const Spread &s, int8_t flipping, float flipPhase,
+                       int8_t hide, bool resetArmed) {
   gfx->clear(COL_BG);
   uint8_t n = 0;
   for (uint8_t i = 0; i < s.count; i++) if (s.revealed[i]) n++;
@@ -596,7 +828,7 @@ static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t
     }
   }
 
-  if (s.count == 3 && n == 3 && appSettings.showHiddenCard) {
+  if (s.count == 3 && n == 3) {
     const DeckDefinition &deck = deckById(s.deck);
     const uint8_t h = tarotHiddenCard(deck, s.reading);
     char buf[96];
@@ -612,7 +844,16 @@ static void spreadBase(const Spread &s, int8_t flipping, float flipPhase, int8_t
   // The hint stands only until the first card turns. After that the spread
   // says what to do by looking like a spread, and the reader has already
   // proved they know how.
-  if (n == 0) hint(s.count == 1 ? T(UI_TAP_THE_CARD) : T(UI_TAP_A_CARD));
+  //
+  // Armed, the reset takes the hint's line: the warning belongs where the
+  // instructions were, and there is no other clear row this low on the face.
+  if (resetArmed) hint(T(UI_RESET_ARMED));
+  else if (n == 0) hint(s.count == 1 ? T(UI_TAP_THE_CARD) : T(UI_TAP_A_CARD));
+
+  // Closing the reading. The cards are not saved anywhere, so the first tap
+  // only arms it and says so; the second gathers them back into the deck.
+  mark(CX, RESET_CY, true, resetArmed ? COL_GOLD : COL_GOLD_DIM);
+  if (resetArmed) gfx->drawCircle(CX, RESET_CY, (int16_t)(MARK_R + 4), COL_GOLD_DIM);
 }
 
 // ---------------- One card, large ----------------
@@ -761,10 +1002,32 @@ int8_t uiMenuHit(int16_t x, int16_t y) {
   return -1;
 }
 
+int8_t uiDrawModeHit(int16_t x, int16_t y) {
+  if (y < DRAW_SEG_TOP - TOUCH_PAD || y >= DRAW_SEG_TOP + DRAW_SEG_H + TOUCH_PAD)
+    return -1;
+  for (int8_t i = 0; i < 2; i++) {
+    const int16_t sx = drawSegX((uint8_t)i);
+    if (x >= sx - TOUCH_PAD && x < sx + DRAW_SEG_W + TOUCH_PAD) return i;
+  }
+  return -1;
+}
+
+bool uiReadingResetHit(int16_t x, int16_t y) {
+  const int16_t r = (int16_t)(MARK_R + TOUCH_PAD);
+  return x >= CX - r && x <= CX + r && y >= RESET_CY - r && y <= RESET_CY + r;
+}
+
+bool uiSettingsLinkHit(int16_t x, int16_t y) {
+  // Padded on three sides only. The bottom edge stops at the deck artwork at
+  // 108, so the pad never takes a touch that was meant for the cards.
+  return x >= LINK_X - TOUCH_PAD && x < LINK_X + LINK_W + TOUCH_PAD &&
+         y >= LINK_TOP - TOUCH_PAD && y < LINK_TOP + LINK_H + TOUCH_PAD / 2;
+}
+
 int8_t uiSettingsHit(int16_t x, int16_t y) {
   if (x < SETTINGS_BUTTON_X || x >= SETTINGS_BUTTON_X + SETTINGS_BUTTON_W) return -1;
   for (int8_t i = 0; i < (int8_t)SETTINGS_ROWS; i++) {
-    const int16_t top = (int16_t)(SETTINGS_BUTTON_TOP + i * SETTINGS_BUTTON_STEP);
+    const int16_t top = settingsRowTop((uint8_t)i);
     if (y >= top && y < top + SETTINGS_BUTTON_H) return i;
   }
   return -1;

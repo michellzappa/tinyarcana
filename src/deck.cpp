@@ -32,20 +32,20 @@ static const uint8_t MARSEILLE_VALUES[MAJOR_COUNT] = {
     8, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
 };
 
-// rws
-static const char *const rws_NUMERALS[MAJOR_COUNT] = {
+// waite-smith
+static const char *const ws_NUMERALS[MAJOR_COUNT] = {
     "0", "I", "II", "III", "IV", "V", "VI", "VII",
     "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV",
     "XVI", "XVII", "XVIII", "XIX", "XX", "XXI",
 };
-static const Element rws_ELEMENTS[MAJOR_COUNT] = {
+static const Element ws_ELEMENTS[MAJOR_COUNT] = {
     EL_AIR, EL_AIR, EL_WATER, EL_EARTH, EL_FIRE,
     EL_EARTH, EL_AIR, EL_WATER, EL_FIRE, EL_EARTH,
     EL_FIRE, EL_AIR, EL_WATER, EL_WATER, EL_FIRE,
     EL_EARTH, EL_FIRE, EL_AIR, EL_WATER, EL_FIRE,
     EL_FIRE, EL_EARTH,
 };
-static const char *const rws_NAMES[MAJOR_COUNT] = {
+static const char *const ws_NAMES[MAJOR_COUNT] = {
     "The Fool", "The Magician", "The High Priestess", "The Empress",
     "The Emperor", "The Hierophant", "The Lovers", "The Chariot",
     "Strength", "The Hermit", "Wheel of Fortune", "Justice",
@@ -54,7 +54,7 @@ static const char *const rws_NAMES[MAJOR_COUNT] = {
     "Judgement", "The World",
 };
 
-static const DeckPair rws_PAIRS[] = {
+static const DeckPair ws_PAIRS[] = {
     {16, 17, true},
     {17, 16, true},
     {13, 19, true},
@@ -174,9 +174,9 @@ static const DeckPair marseille_PAIRS[] = {
 };
 
 const DeckDefinition DECKS[] = {
-    {"rws", "rws", nullptr, GOLDEN_DAWN_GLYPHS, SEQUENTIAL_VALUES,
-     rws_NUMERALS, rws_ELEMENTS, nullptr,
-     rws_PAIRS, sizeof(rws_PAIRS) / sizeof(rws_PAIRS[0]), MAJOR_COUNT},
+    {"waite-smith", "waite-smith", nullptr, GOLDEN_DAWN_GLYPHS, SEQUENTIAL_VALUES,
+     ws_NUMERALS, ws_ELEMENTS, nullptr,
+     ws_PAIRS, sizeof(ws_PAIRS) / sizeof(ws_PAIRS[0]), MAJOR_COUNT},
     {"gptarot", "gptarot", "back", GOLDEN_DAWN_GLYPHS, SEQUENTIAL_VALUES,
      gptarot_NUMERALS, gptarot_ELEMENTS, nullptr,
      gptarot_PAIRS, sizeof(gptarot_PAIRS) / sizeof(gptarot_PAIRS[0]), MAJOR_COUNT},
@@ -270,6 +270,28 @@ bool deckTextLoad(DeckText &t, const DeckDefinition &deck, const char *lang,
 
 StringPack uiStrings = {nullptr, nullptr, 0};
 DeckText deckText = {};
+
+static char langCache[8][LANG_CODE_MAX];
+static int8_t langCached = -1;
+
+static void langFill() {
+  if (langCached >= 0) return;
+  langCached = (int8_t)langList(langCache, 8);
+}
+
+uint8_t langCount() { langFill(); return (uint8_t)langCached; }
+
+const char *langCodeAt(uint8_t i) {
+  langFill();
+  return i < (uint8_t)langCached ? langCache[i] : "en";
+}
+
+uint8_t langIndexOf(const char *code) {
+  langFill();
+  for (uint8_t i = 0; i < (uint8_t)langCached; i++)
+    if (strcmp(langCache[i], code) == 0) return i;
+  return 0;
+}
 
 uint8_t langList(char out[][LANG_CODE_MAX], uint8_t max) {
   uint8_t n = 0;

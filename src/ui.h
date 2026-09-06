@@ -46,15 +46,40 @@ void uiBoot(uint32_t ageMs, bool fsOk, bool touchOk);
 void uiDeck(uint32_t nowMs, bool holding, float progress);
 void uiMenu(uint8_t selected);
 void uiHelp();
-// Deck, brightness, hidden card, draw, language. Shared so the renderer, the
-// hit test and the BOOT-button cursor in main.cpp cannot disagree.
-static const uint8_t SETTINGS_ROWS = 5;
-void uiSettings(const AppSettings &settings, uint8_t selected);
+// Deck, brightness, language, reset. Shared so the renderer, the hit test and
+// the BOOT-button cursor in main.cpp cannot disagree.
+//
+// Draw (one card or three) is not here. It changes the ritual on the deck
+// screen, so its control lives there, where the change is felt.
+enum SettingsRow : uint8_t {
+  SET_ROW_DECK = 0,
+  SET_ROW_BRIGHT,
+  SET_ROW_LANG,
+  SET_ROW_RESET,
+};
+static const uint8_t SETTINGS_ROWS = 4;
+// resetArmed draws the reset row asking for a second tap.
+void uiSettings(const AppSettings &settings, uint8_t selected, bool resetArmed);
+// Brightness is dragged along its row, so the x under the finger is the value.
+// The geometry lives in ui.cpp; main.cpp asks it what an x means.
+uint8_t uiBrightnessAtX(int16_t x);
+
+// The way into Settings from the deck screen.
+bool uiSettingsLinkHit(int16_t x, int16_t y);
+
+// Closing the reading, from the spread screen. Armed on the first tap.
+bool uiReadingResetHit(int16_t x, int16_t y);
+
+// The one-card / three-card control on the deck screen. Both of these test a
+// target larger than the pill that is drawn.
+// Returns 0 for one card, 1 for three, -1 for a miss.
+int8_t uiDrawModeHit(int16_t x, int16_t y);
 void uiDeal(float p, uint8_t count);
 // The reverse: the three cards fly back into the stack, face down.
 void uiGather(float p, uint8_t count);
 // flipping: slot index mid-flip or -1; flipPhase 0..1.
-void uiSpread(const Spread &s, int8_t flipping, float flipPhase);
+void uiSpread(const Spread &s, int8_t flipping, float flipPhase,
+              bool resetArmed = false);
 // The tapped card grows from its slot to fill the glass; p 0..1.
 void uiZoom(const Spread &s, uint8_t pos, float p);
 // One card as large as the glass allows, then its meaning as centered text.

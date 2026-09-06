@@ -72,7 +72,7 @@ struct DeckReadingStyle {
 };
 
 struct DeckDefinition {
-  const char *id;          // filesystem-safe identifier, e.g. "rws"
+  const char *id;          // filesystem-safe identifier, e.g. "waite-smith"
   const char *assetDir;    // optional LittleFS directory below /decks/
   const char *backAsset;   // optional back basename; nullptr uses procedural
   const Glyph *glyphs;     // nullptr when a deck has no glyph set
@@ -125,6 +125,13 @@ bool langApply(const char *lang, uint8_t deckId);
 // of its own: a language exists because its directory does.
 static const uint8_t LANG_CODE_MAX = 6;
 uint8_t langList(char out[][LANG_CODE_MAX], uint8_t max);
+
+// The same list, read once and kept. langList() opens the filesystem, and the
+// settings screen redraws several times a second; the set of directories can
+// only change on an uploadfs, which is a reboot.
+uint8_t langCount();
+const char *langCodeAt(uint8_t i);
+uint8_t langIndexOf(const char *code);
 
 const DeckDefinition &deckById(uint8_t id);
 static inline const CardInfo &deckCard(const DeckText &t, uint8_t id) {

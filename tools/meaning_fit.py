@@ -7,7 +7,7 @@ firmware simply stops drawing, with no warning, so an over-long translation
 loses its last sentence silently. This is the gate for that.
 
     python3 tools/meaning_fit.py                 # every language, every deck
-    python3 tools/meaning_fit.py pt-BR rws
+    python3 tools/meaning_fit.py pt-BR waite-smith
 """
 import json
 import math

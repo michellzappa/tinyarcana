@@ -116,7 +116,7 @@ BUMPED2 = dict(label=16, labelY=78, name=34, nameY=122, keys=19, keysY=154, rule
                dotsY=416, flow=True, gap=50, floor=64, capGap=44)
 
 
-def longest_cards(n=3, deck="rws", lang="en"):
+def longest_cards(n=3, deck="waite-smith", lang="en"):
     """The n longest position texts, as card dicts.
 
     The text comes from assets/lang/<lang>/<deck>.json and the numerals and
