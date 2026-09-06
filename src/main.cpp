@@ -15,6 +15,7 @@
 #include "cards.h"
 #include "deck.h"
 #include "entropy.h"
+#include "power.h"
 #include "settings.h"
 #include "tarot_data.h"
 #include "tarot_engine.h"
@@ -230,6 +231,13 @@ void loop() {
   const uint32_t age = now - enterMs;
   InputFrame in;
   boardInputPoll(&in);
+
+  // Idle policy first: a sleeping device draws no frame, and the touch that
+  // wakes it must not also turn a card.
+  if (in.touchDown || in.touchBegan || in.touchEnded || in.tap || in.aDown ||
+      in.aPressed || in.aLong || in.bPressed)
+    powerNoteActivity();
+  if (powerIdle(appSettings.brightness)) return;
 
   // Close the reading: BOOT held + PWR, or BOOT held on its own for 800 ms.
   // After the chord the BOOT hold that is still in progress must not fire

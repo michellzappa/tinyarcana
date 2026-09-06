@@ -16,3 +16,17 @@ struct PowerState {
 
 // Reads the PMU at most every 10 s and returns the cached state.
 const PowerState &powerPoll();
+
+// ---------------- Idle policy ----------------
+//
+// The panel is the largest continuous draw on this board and it ran at the
+// reader's brightness forever. On battery the device now dims, then stops the
+// chip between touches. On USB it only dims: a device on a cable is a device
+// someone is looking at.
+//
+// Call powerNoteActivity() for any touch or button, then powerIdle() once a
+// frame with the brightness the reader chose.
+void powerNoteActivity();
+// Returns true when the caller must skip this frame: the device was asleep,
+// and the input that woke it only woke it.
+bool powerIdle(uint8_t awake);
