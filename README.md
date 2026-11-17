@@ -156,7 +156,7 @@ data/<env>/               generated LittleFS payload (gitignored)
 
 The included Waite-Smith artwork, published in 1909 as the Rider deck, is
 identified as public domain in
-[LICENSE](LICENSE). The bundled Marseille pack is the CC0 Jean Dodal-attributed
+[THIRD_PARTY.md](THIRD_PARTY.md). The bundled Marseille pack is the CC0 Jean Dodal-attributed
 Major Arcana pack credited there. Any additional deck artwork
 must be reviewed separately: a particular scan, edition, restoration, or
 digital redraw may still be protected. Where an additional deck is included
@@ -168,8 +168,8 @@ before distributing a build containing additional artwork.
 
 ## Licence
 
-MIT. Third-party material and its licences are listed at the end of
-[LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). Third-party material and its licences are listed
+in [THIRD_PARTY.md](THIRD_PARTY.md).
 
 Board bring-up is copied from the author's sibling projects
 [esp32-lofiair](https://github.com/michellzappa/esp32-lofiair),
